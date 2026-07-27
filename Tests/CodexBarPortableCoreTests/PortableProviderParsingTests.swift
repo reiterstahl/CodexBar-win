@@ -38,7 +38,7 @@ struct PortableProviderParsingTests {
         #expect(snapshot.windows.count == 2)
         #expect(snapshot.windows[0].id == "session")
         #expect(snapshot.windows[0].remainingPercent == 75)
-        #expect(snapshot.windows[1].windowMinutes == 10_080)
+        #expect(snapshot.windows[1].windowMinutes == 10080)
         #expect(snapshot.identity?.plan == "plus")
     }
 

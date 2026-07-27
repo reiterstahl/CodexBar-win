@@ -30,7 +30,7 @@ public struct CodexBarPortableEngine: Sendable {
         // independent credential failures through sibling child-task cancellation.
         for provider in providers {
             do {
-                snapshots.append(try await self.fetch(provider))
+                try await snapshots.append(self.fetch(provider))
             } catch {
                 failures.append(self.failure(provider: provider, error: error))
             }
@@ -73,24 +73,23 @@ public struct CodexBarPortableEngine: Sendable {
     }
 
     private func failure(provider: PortableProvider, error: Error) -> PortableProviderFailure {
-        let code: String
-        switch error {
+        let code = switch error {
         case let credentialError as PortableCredentialError:
-            code = switch credentialError {
+            switch credentialError {
             case .notFound: "credentials_not_found"
             case .unreadable: "credentials_unreadable"
             case .invalid: "credentials_invalid"
             case .expired: "credentials_expired"
             }
         case let providerError as PortableProviderError:
-            code = switch providerError {
+            switch providerError {
             case .unauthorized: "unauthorized"
             case .invalidResponse: "invalid_response"
             case .server: "server_error"
             case .network: "network_error"
             }
         default:
-            code = "unknown"
+            "unknown"
         }
         return PortableProviderFailure(
             provider: provider,
