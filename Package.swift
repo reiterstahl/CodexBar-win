@@ -26,13 +26,18 @@ let package = Package(
     ],
     products: {
         var products: [Product] = [
-            .library(name: "CodexBarCore", targets: ["CodexBarCore"]),
             .library(name: "CodexBarPortableCore", targets: ["CodexBarPortableCore"]),
-            .executable(name: "CodexBarCLI", targets: ["CodexBarCLI"]),
             .executable(name: "CodexBarWindowsEngine", targets: ["CodexBarWindowsEngine"]),
             // Offline adaptive-refresh replay harness. Keep the supporting library package-internal.
             .executable(name: "AdaptiveReplayCLI", targets: ["AdaptiveReplayCLI"]),
         ]
+
+        #if !os(Windows)
+        products.append(contentsOf: [
+            .library(name: "CodexBarCore", targets: ["CodexBarCore"]),
+            .executable(name: "CodexBarCLI", targets: ["CodexBarCLI"]),
+        ])
+        #endif
 
         #if os(macOS)
         products.append(contentsOf: [
@@ -56,37 +61,6 @@ let package = Package(
     ],
     targets: {
         var targets: [Target] = [
-            // Both glibc and static-musl CLI builds use this target; the module map supplies sqlite3 linkage.
-            .systemLibrary(
-                name: "CSQLite3",
-                providers: [
-                    .apt(["libsqlite3-dev"]),
-                    .brew(["sqlite3"]),
-                ]),
-            .target(
-                name: "CodexBarCore",
-                dependencies: [
-                    .target(name: "CSQLite3", condition: .when(platforms: [.linux])),
-                    .product(name: "Crypto", package: "swift-crypto"),
-                    .product(name: "Logging", package: "swift-log"),
-                    .product(name: "SweetCookieKit", package: "SweetCookieKit"),
-                ],
-                swiftSettings: [
-                    .enableUpcomingFeature("StrictConcurrency"),
-                ],
-                linkerSettings: sqlite3LinkerSettings),
-            .executableTarget(
-                name: "CodexBarCLI",
-                dependencies: [
-                    "CodexBarCore",
-                    .product(name: "Commander", package: "Commander"),
-                    .product(name: "Crypto", package: "swift-crypto"),
-                ],
-                path: "Sources/CodexBarCLI",
-                swiftSettings: [
-                    .enableUpcomingFeature("StrictConcurrency"),
-                ],
-                linkerSettings: sqlite3LinkerSettings),
             // Minimal cross-platform engine for the native Windows app. Keep this target
             // Foundation-only so it can build without AppKit, POSIX, browser-cookie, or
             // Keychain dependencies. The first milestone intentionally supports only the
@@ -158,20 +132,54 @@ let package = Package(
         ]
 
         #if !os(Windows)
-        // Keep the existing Linux-focused compatibility suite on macOS/Linux, but do
-        // not let `swift test` pull the POSIX-only CodexBarCore into Windows builds.
-        targets.append(.testTarget(
-            name: "CodexBarLinuxTests",
-            dependencies: [
-                "CodexBarCore",
-                "CodexBarCLI",
-                .target(name: "CSQLite3", condition: .when(platforms: [.linux])),
-            ],
-            path: "TestsLinux",
-            swiftSettings: [
-                .enableUpcomingFeature("StrictConcurrency"),
-                .enableExperimentalFeature("SwiftTesting"),
-            ]))
+        // Keep the mature POSIX/macOS core out of Windows package graphs. SwiftPM
+        // builds every testable target before applying --filter, so merely filtering
+        // for Portable tests is not sufficient on Windows.
+        targets.append(contentsOf: [
+            // Both glibc and static-musl CLI builds use this target; the module map supplies sqlite3 linkage.
+            .systemLibrary(
+                name: "CSQLite3",
+                providers: [
+                    .apt(["libsqlite3-dev"]),
+                    .brew(["sqlite3"]),
+                ]),
+            .target(
+                name: "CodexBarCore",
+                dependencies: [
+                    .target(name: "CSQLite3", condition: .when(platforms: [.linux])),
+                    .product(name: "Crypto", package: "swift-crypto"),
+                    .product(name: "Logging", package: "swift-log"),
+                    .product(name: "SweetCookieKit", package: "SweetCookieKit"),
+                ],
+                swiftSettings: [
+                    .enableUpcomingFeature("StrictConcurrency"),
+                ],
+                linkerSettings: sqlite3LinkerSettings),
+            .executableTarget(
+                name: "CodexBarCLI",
+                dependencies: [
+                    "CodexBarCore",
+                    .product(name: "Commander", package: "Commander"),
+                    .product(name: "Crypto", package: "swift-crypto"),
+                ],
+                path: "Sources/CodexBarCLI",
+                swiftSettings: [
+                    .enableUpcomingFeature("StrictConcurrency"),
+                ],
+                linkerSettings: sqlite3LinkerSettings),
+            .testTarget(
+                name: "CodexBarLinuxTests",
+                dependencies: [
+                    "CodexBarCore",
+                    "CodexBarCLI",
+                    .target(name: "CSQLite3", condition: .when(platforms: [.linux])),
+                ],
+                path: "TestsLinux",
+                swiftSettings: [
+                    .enableUpcomingFeature("StrictConcurrency"),
+                    .enableExperimentalFeature("SwiftTesting"),
+                ]),
+        ])
         #endif
 
         #if os(macOS)
