@@ -262,7 +262,30 @@ jobs:
           ) | Select-Object -Unique
           $swiftPathEntries |
             Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          $sdkRoot = [Environment]::GetEnvironmentVariable("SDKROOT", "Machine")
+          if ([string]::IsNullOrWhiteSpace($sdkRoot)) {
+            $sdkRoot = [Environment]::GetEnvironmentVariable("SDKROOT", "User")
+          }
+          if ([string]::IsNullOrWhiteSpace($sdkRoot) -or
+              -not (Test-Path -LiteralPath $sdkRoot)) {
+            $swiftRoot = (Get-Item -LiteralPath $swiftDirectory).Parent.Parent.Parent.Parent.FullName
+            $sdkRoot = Get-ChildItem -LiteralPath (Join-Path $swiftRoot "Platforms") -Directory |
+              Sort-Object -Property LastWriteTimeUtc -Descending |
+              ForEach-Object {
+                Join-Path $_.FullName "Windows.platform\Developer\SDKs\Windows.sdk"
+              } |
+              Where-Object { Test-Path -LiteralPath $_ } |
+              Select-Object -First 1
+          }
+          if ([string]::IsNullOrWhiteSpace($sdkRoot) -or
+              -not (Test-Path -LiteralPath $sdkRoot)) {
+            throw "The Swift Windows SDK could not be found."
+          }
+          $env:SDKROOT = $sdkRoot
+          "SDKROOT=$sdkRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           swift --version
+          swiftc -print-target-info
 
       - name: Build portable Windows engine
         shell: pwsh
