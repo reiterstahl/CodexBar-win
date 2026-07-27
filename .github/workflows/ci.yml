@@ -255,7 +255,13 @@ jobs:
           }
           $swift = Get-Command swift -ErrorAction Stop
           $swiftDirectory = Split-Path $swift.Source
-          $swiftDirectory | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $swiftPathEntries = @(
+            $env:Path -split ";" |
+              Where-Object { $_ -match "[\\/]Swift[\\/]" -and (Test-Path -LiteralPath $_) }
+            $swiftDirectory
+          ) | Select-Object -Unique
+          $swiftPathEntries |
+            Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           swift --version
 
       - name: Build portable Windows engine
