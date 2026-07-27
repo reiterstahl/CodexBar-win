@@ -27,7 +27,9 @@ let package = Package(
     products: {
         var products: [Product] = [
             .library(name: "CodexBarCore", targets: ["CodexBarCore"]),
+            .library(name: "CodexBarPortableCore", targets: ["CodexBarPortableCore"]),
             .executable(name: "CodexBarCLI", targets: ["CodexBarCLI"]),
+            .executable(name: "CodexBarWindowsEngine", targets: ["CodexBarWindowsEngine"]),
             // Offline adaptive-refresh replay harness. Keep the supporting library package-internal.
             .executable(name: "AdaptiveReplayCLI", targets: ["AdaptiveReplayCLI"]),
         ]
@@ -85,6 +87,32 @@ let package = Package(
                     .enableUpcomingFeature("StrictConcurrency"),
                 ],
                 linkerSettings: sqlite3LinkerSettings),
+            // Minimal cross-platform engine for the native Windows app. Keep this target
+            // Foundation-only so it can build without AppKit, POSIX, browser-cookie, or
+            // Keychain dependencies. The first milestone intentionally supports only the
+            // Codex and Claude Code OAuth usage sources.
+            .target(
+                name: "CodexBarPortableCore",
+                dependencies: [],
+                path: "Sources/CodexBarPortableCore",
+                swiftSettings: [
+                    .enableUpcomingFeature("StrictConcurrency"),
+                ]),
+            .executableTarget(
+                name: "CodexBarWindowsEngine",
+                dependencies: ["CodexBarPortableCore"],
+                path: "Sources/CodexBarWindowsEngine",
+                swiftSettings: [
+                    .enableUpcomingFeature("StrictConcurrency"),
+                ]),
+            .testTarget(
+                name: "CodexBarPortableCoreTests",
+                dependencies: ["CodexBarPortableCore"],
+                path: "Tests/CodexBarPortableCoreTests",
+                swiftSettings: [
+                    .enableUpcomingFeature("StrictConcurrency"),
+                    .enableExperimentalFeature("SwiftTesting"),
+                ]),
             // Sole owner of the adaptive refresh decision table. Package-internal so the app and
             // offline replay tool share behavior without publishing another library product.
             .target(
@@ -127,19 +155,24 @@ let package = Package(
                     .enableUpcomingFeature("StrictConcurrency"),
                     .enableExperimentalFeature("SwiftTesting"),
                 ]),
-            .testTarget(
-                name: "CodexBarLinuxTests",
-                dependencies: [
-                    "CodexBarCore",
-                    "CodexBarCLI",
-                    .target(name: "CSQLite3", condition: .when(platforms: [.linux])),
-                ],
-                path: "TestsLinux",
-                swiftSettings: [
-                    .enableUpcomingFeature("StrictConcurrency"),
-                    .enableExperimentalFeature("SwiftTesting"),
-                ]),
         ]
+
+        #if !os(Windows)
+        // Keep the existing Linux-focused compatibility suite on macOS/Linux, but do
+        // not let `swift test` pull the POSIX-only CodexBarCore into Windows builds.
+        targets.append(.testTarget(
+            name: "CodexBarLinuxTests",
+            dependencies: [
+                "CodexBarCore",
+                "CodexBarCLI",
+                .target(name: "CSQLite3", condition: .when(platforms: [.linux])),
+            ],
+            path: "TestsLinux",
+            swiftSettings: [
+                .enableUpcomingFeature("StrictConcurrency"),
+                .enableExperimentalFeature("SwiftTesting"),
+            ]))
+        #endif
 
         #if os(macOS)
         targets.append(contentsOf: [
@@ -188,7 +221,11 @@ let package = Package(
             name: "CodexBarTests",
             dependencies: ["CodexBar", "CodexBarCore", "CodexBarCLI", "CodexBarWidget"],
             path: "Tests",
-            exclude: ["AdaptiveReplayCLITests", "AdaptiveReplayKitTests"],
+            exclude: [
+                "AdaptiveReplayCLITests",
+                "AdaptiveReplayKitTests",
+                "CodexBarPortableCoreTests",
+            ],
             resources: [
                 .copy("CodexBarTests/Fixtures"),
             ],

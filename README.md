@@ -49,6 +49,14 @@ Or download release tarballs from GitHub Releases:
 - Linux (glibc): `CodexBarCLI-v<tag>-linux-aarch64.tar.gz`, `CodexBarCLI-v<tag>-linux-x86_64.tar.gz`
 - Linux (static musl): `CodexBarCLI-v<tag>-linux-musl-aarch64.tar.gz`, `CodexBarCLI-v<tag>-linux-musl-x86_64.tar.gz`
 
+### Windows engine preview
+
+The native Windows port is under development with an intentionally narrow first milestone:
+Codex and Claude Code usage through their existing CLI OAuth credentials. It now includes a
+Foundation-only Swift engine and an initial native WPF tray shell. Build commands, the security
+boundary, self-contained preview packaging, and remaining work are documented in
+[CodexBar for Windows](docs/windows.md).
+
 ### First run
 - Open Settings → Providers and enable what you use.
 - Install/sign in to the provider sources you rely on: CLIs, browser sessions, OAuth/device flow, API keys, local app files, or provider apps depending on the provider.
