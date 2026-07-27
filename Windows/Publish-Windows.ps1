@@ -45,6 +45,7 @@ function Invoke-CheckedCommand {
 function Add-RuntimeCandidates {
     param(
         [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
         [System.Collections.Generic.List[string]] $Candidates,
         [Parameter(Mandatory = $true)]
         [string] $RuntimeRoot
