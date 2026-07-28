@@ -50,6 +50,12 @@ each provider, run:
 
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Add-CodexBarAccounts.ps1 -Login
 
+Codex uses device-code login by default: the terminal prints a URL and
+one-time code without opening the default browser. Open the URL in the browser
+profile for the secondary account, enter the code, and return to the terminal.
+Device-code login may first need to be enabled in ChatGPT security settings.
+To use the original browser-opening flow instead, add -CodexBrowserLogin.
+
 Each account is queried in a separate short-lived engine process. The script
 does not copy tokens or change your primary Codex and Claude Code sessions.
 

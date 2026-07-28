@@ -4,7 +4,8 @@
 param(
     [ValidatePattern("^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$")]
     [string] $ProfileName = "2",
-    [switch] $Login
+    [switch] $Login,
+    [switch] $CodexBrowserLogin
 )
 
 Set-StrictMode -Version Latest
@@ -38,8 +39,25 @@ try {
     Write-Host ""
     Write-Host "Signing in to the secondary Codex account..."
     $env:CODEX_HOME = $codexDirectory
-    & $codexCommand.Source login
+    if ($CodexBrowserLogin) {
+        Write-Host "Codex will open the standard sign-in flow in your default browser."
+        & $codexCommand.Source login
+    }
+    else {
+        Write-Host "Codex will print a URL and one-time code; it will not open a browser."
+        Write-Host "Open that URL in the browser profile for this account, enter the code,"
+        Write-Host "then return here and wait for confirmation."
+        & $codexCommand.Source login --device-auth
+    }
     if ($LASTEXITCODE -ne 0) {
+        if (-not $CodexBrowserLogin) {
+            throw @"
+Codex device login exited with code $LASTEXITCODE.
+Make sure device code login is enabled in your ChatGPT security settings and
+that your Codex CLI supports 'codex login --device-auth'. To use the standard
+browser flow instead, rerun this script with -Login -CodexBrowserLogin.
+"@
+        }
         throw "Codex login exited with code $LASTEXITCODE."
     }
 

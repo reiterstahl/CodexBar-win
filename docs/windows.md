@@ -136,6 +136,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\Add-CodexBarAccounts.ps1 -Login
 ```
 
+The Codex step defaults to `codex login --device-auth`. It prints a URL and one-time code instead
+of opening the default browser, so the URL can be completed in the browser profile for the intended
+account. Device-code authentication may first need to be enabled in ChatGPT security settings.
+Pass `-CodexBrowserLogin` to opt back into the standard browser-opening flow.
+
 The default profile name is `2`, producing `%USERPROFILE%\.codex-2` and
 `%USERPROFILE%\.claude-2`. Pass `-ProfileName work` (or another short name) to create more
 profiles. Restart CodexBar or refresh after authentication.
