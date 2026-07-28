@@ -232,6 +232,8 @@ try {
         -Destination $OutputDirectory -Force
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "PackageReadme.txt") `
         -Destination (Join-Path $OutputDirectory "README.txt") -Force
+    Copy-Item -LiteralPath (Join-Path $repositoryRoot "docs\windows-installation.es.md") `
+        -Destination (Join-Path $OutputDirectory "INSTALLATION.md") -Force
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "THIRD-PARTY-NOTICES.md") `
         -Destination $OutputDirectory -Force
     Copy-Item -LiteralPath (Join-Path $repositoryRoot "LICENSE") `

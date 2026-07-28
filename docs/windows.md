@@ -8,6 +8,9 @@ read_when:
 
 # CodexBar for Windows
 
+For an end-to-end Spanish setup guide for a new Windows 11 PC, see
+[Instalación de CodexBar en una PC nueva](windows-installation.es.md).
+
 The Windows port starts with a deliberately small engine that supports two providers:
 
 - Codex, using the OAuth credentials owned by the Codex CLI.

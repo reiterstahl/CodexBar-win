@@ -6,6 +6,8 @@ This package supports only:
   - OpenAI Codex, using the existing Codex CLI login.
   - Claude Code, using the existing Claude CLI login.
 
+For complete instructions in Spanish, open INSTALLATION.md.
+
 It does not copy, store, or refresh provider credentials. Authenticate with the
 official provider CLIs before opening CodexBar.
 
