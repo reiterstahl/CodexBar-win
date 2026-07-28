@@ -96,6 +96,14 @@ Run the packaging script from a PowerShell terminal on an x64 Windows machine:
 .\Windows\Publish-Windows.ps1
 ```
 
+To produce only a transferable ZIP on the desktop, without retaining the expanded artifact and
+publish-staging directories:
+
+```powershell
+.\Windows\Publish-Windows.ps1 -SkipTests -ArchiveOnly `
+  -ArchivePath "$env:USERPROFILE\Desktop\CodexBar-Windows.zip"
+```
+
 The script:
 
 1. Runs the portable Swift and engine-client tests.
@@ -114,21 +122,28 @@ artifacts\windows\CodexBar-win-x64.zip
 artifacts\windows\CodexBar-win-x64.zip.sha256
 ```
 
-The ZIP does not require Swift or .NET to be installed on the destination machine. Swift's
-Windows toolchain depends on the Microsoft Visual C++ runtime; the package intentionally does
-not copy potentially stale Microsoft DLLs from the toolchain. If the destination does not
-already have it, install the
+Only `CodexBar-win-x64.zip` needs to be transferred to another PC. The ZIP does not require
+Swift, .NET, Visual Studio, Git, or the source repository on the destination machine. Swift's
+Windows toolchain depends on the Microsoft Visual C++ runtime; the package intentionally does not
+copy potentially stale Microsoft DLLs from the toolchain. If the destination does not already
+have it, install the
 [current x64 Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
 
-After extracting the ZIP, verify it and launch the tray application:
+After extracting the ZIP, install and launch the tray application:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\Test-CodexBar.ps1 -Launch
+  -File .\Install-CodexBar.ps1 -DesktopShortcut -StartWithWindows
 ```
 
-This validation checks packaged hashes and starts the engine only with `--version`; it does not
-probe provider accounts. Launching the tray performs the normal provider refresh.
+The installer verifies every packaged hash, smoke-tests the engine without probing accounts,
+installs to `%LOCALAPPDATA%\Programs\CodexBar`, and creates Start menu shortcuts. The optional
+switches create a desktop shortcut and a current-user Startup shortcut. Installation requires no
+administrator privileges. To remain fully portable, run `Test-CodexBar.ps1 -Launch` instead.
+
+Use **Uninstall CodexBar** from the Start menu to remove the application. Presentation settings
+are preserved unless `Uninstall-CodexBar.ps1 -RemoveSettings` is used. Uninstallation never
+removes provider-owned Codex or Claude credentials.
 
 To create and authenticate a second isolated account for each provider:
 
@@ -146,8 +161,9 @@ The default profile name is `2`, producing `%USERPROFILE%\.codex-2` and
 `%USERPROFILE%\.claude-2`. Pass `-ProfileName work` (or another short name) to create more
 profiles. Restart CodexBar or refresh after authentication.
 
-CI creates the same ZIP in the `CodexBar-win-x64` workflow artifact. This development preview is
-not signed, so Windows SmartScreen can display a warning.
+CI can create the same ZIP in the `CodexBar-win-x64` workflow artifact, but CI is not required:
+`Publish-Windows.ps1` creates it entirely on the build PC. The package is not signed, so Windows
+SmartScreen can display a warning.
 
 ## Tray process boundary
 
@@ -180,9 +196,8 @@ itself.
 2. Add Windows Credential Manager support before CodexBar owns any secrets.
 3. Add provider-CLI version detection without PTY requirements.
 4. Sign the Windows binaries and package after desktop validation.
-5. Build an MSIX or MSI installer from the validated ZIP layout.
-6. Add startup registration with an explicit user-controlled setting.
-7. Add fixture parity tests against the mature macOS/Linux Codex and Claude mappings.
+5. Optionally replace the user-local PowerShell installer with a signed MSIX or MSI.
+6. Add fixture parity tests against the mature macOS/Linux Codex and Claude mappings.
 
 Browser cookies, WebView2, ConPTY, SQLite, and providers other than Codex and Claude Code are
 outside the current scope.

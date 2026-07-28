@@ -1,5 +1,5 @@
-CodexBar for Windows 11 — development preview
-================================================
+CodexBar for Windows 11
+=======================
 
 This package supports only:
 
@@ -9,23 +9,41 @@ This package supports only:
 It does not copy, store, or refresh provider credentials. Authenticate with the
 official provider CLIs before opening CodexBar.
 
-Quick test
-----------
+Install
+-------
 
 Open PowerShell in this directory and run:
 
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Test-CodexBar.ps1 -Launch
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-CodexBar.ps1
 
-The script verifies every packaged file, tests the usage engine without reading
-provider credentials, and starts CodexBar in the Windows notification area.
+This verifies the package, installs CodexBar under your local application-data
+directory, creates Start menu shortcuts, and launches it. No administrator,
+Swift, .NET SDK, Visual Studio, or source repository is required.
+
+For a desktop shortcut and automatic startup:
+
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-CodexBar.ps1 -DesktopShortcut -StartWithWindows
+
+To run directly from the extracted folder without installing:
+
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Test-CodexBar.ps1 -Launch
 
 If Windows reports a missing Microsoft Visual C++ runtime, install the latest
 supported x64 Visual C++ Redistributable from Microsoft, then retry:
 
   https://aka.ms/vs/17/release/vc_redist.x64.exe
 
-This development preview is not code-signed yet. Windows SmartScreen may ask you
-to confirm that you want to run it.
+This package is not code-signed yet. Windows SmartScreen may ask you to confirm
+that you want to run it.
+
+Uninstall
+---------
+
+Use "Uninstall CodexBar" in the Start menu. It removes the application but
+preserves presentation settings and all provider-owned credentials. To remove
+CodexBar presentation settings too, run:
+
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\Programs\CodexBar\Uninstall-CodexBar.ps1" -RemoveSettings
 
 Troubleshooting
 ---------------

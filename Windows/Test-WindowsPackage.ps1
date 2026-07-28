@@ -3,7 +3,8 @@
 [CmdletBinding()]
 param(
     [string] $PackageDirectory,
-    [switch] $Launch
+    [switch] $Launch,
+    [switch] $Quiet
 )
 
 Set-StrictMode -Version Latest
@@ -84,5 +85,7 @@ if ($Launch) {
     Write-Host "CodexBar is running in the notification area (process $($process.Id))."
 }
 else {
-    Write-Host "Run this script again with -Launch to start the tray application."
+    if (-not $Quiet) {
+        Write-Host "Run this script again with -Launch to start the tray application."
+    }
 }

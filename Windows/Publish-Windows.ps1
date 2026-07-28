@@ -8,7 +8,8 @@ param(
     [string] $RuntimeIdentifier = "win-x64",
     [string] $OutputDirectory,
     [string] $ArchivePath,
-    [switch] $SkipTests
+    [switch] $SkipTests,
+    [switch] $ArchiveOnly
 )
 
 Set-StrictMode -Version Latest
@@ -27,6 +28,17 @@ if ([string]::IsNullOrWhiteSpace($ArchivePath)) {
 
 $OutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
 $ArchivePath = [System.IO.Path]::GetFullPath($ArchivePath)
+if ($ArchiveOnly) {
+    $trimCharacters = [char[]]@(
+        [System.IO.Path]::DirectorySeparatorChar,
+        [System.IO.Path]::AltDirectorySeparatorChar
+    )
+    $outputPrefix = $OutputDirectory.TrimEnd($trimCharacters) +
+        [System.IO.Path]::DirectorySeparatorChar
+    if ($ArchivePath.StartsWith($outputPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "ArchivePath cannot be inside OutputDirectory when ArchiveOnly is used."
+    }
+}
 
 function Invoke-CheckedCommand {
     param(
@@ -214,6 +226,10 @@ try {
         -Destination (Join-Path $OutputDirectory "Test-CodexBar.ps1") -Force
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "Add-CodexBarAccounts.ps1") `
         -Destination $OutputDirectory -Force
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "Install-CodexBar.ps1") `
+        -Destination $OutputDirectory -Force
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "Uninstall-CodexBar.ps1") `
+        -Destination $OutputDirectory -Force
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "PackageReadme.txt") `
         -Destination (Join-Path $OutputDirectory "README.txt") -Force
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "THIRD-PARTY-NOTICES.md") `
@@ -270,6 +286,11 @@ try {
     $archiveHash = (Get-FileHash -LiteralPath $ArchivePath -Algorithm SHA256).Hash.ToLowerInvariant()
     Set-Content -LiteralPath "$ArchivePath.sha256" `
         -Value "$archiveHash  $(Split-Path -Leaf $ArchivePath)" -Encoding ASCII
+
+    if ($ArchiveOnly) {
+        Remove-Item -LiteralPath $OutputDirectory -Recurse -Force
+        Remove-Item -LiteralPath $publishDirectory -Recurse -Force
+    }
 
     Write-Host ""
     Write-Host "Windows package created:"
