@@ -19,6 +19,11 @@
         BorderBrush="{StaticResource BorderBrush}"
         BorderThickness="1"
         CornerRadius="14">
+        <Border.LayoutTransform>
+            <ScaleTransform
+                ScaleX="{Binding UiScale}"
+                ScaleY="{Binding UiScale}" />
+        </Border.LayoutTransform>
         <Border.Effect>
             <DropShadowEffect
                 BlurRadius="22"
@@ -66,6 +71,14 @@
                     VerticalAlignment="Center"
                     Orientation="Horizontal">
                     <Button
+                        Width="36"
+                        Height="30"
+                        Margin="0,0,6,0"
+                        Padding="0"
+                        Click="SettingsButton_Click"
+                        Content="Aa"
+                        ToolTip="Appearance settings" />
+                    <Button
                         Margin="0,0,6,0"
                         Padding="9,5"
                         Click="CompactButton_Click"
@@ -103,6 +116,71 @@
                         ToolTip="Hide to notification area" />
                 </StackPanel>
             </Grid>
+
+            <Border
+                DockPanel.Dock="Top"
+                Margin="12,0,12,5"
+                Padding="10,7"
+                Background="#101216"
+                BorderBrush="{StaticResource AccentMutedBrush}"
+                BorderThickness="1"
+                CornerRadius="9"
+                Visibility="{Binding IsSettingsOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="54" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="{StaticResource PrimaryTextBrush}"
+                            Text="Interface size" />
+                        <TextBlock
+                            Margin="0,1,0,0"
+                            FontSize="9"
+                            Foreground="{StaticResource SecondaryTextBrush}"
+                            Text="Saved automatically" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="1"
+                        Width="32"
+                        Height="28"
+                        Padding="0"
+                        Click="DecreaseUiScaleButton_Click"
+                        Content="A−"
+                        IsEnabled="{Binding CanDecreaseUiScale}"
+                        ToolTip="Decrease interface size" />
+                    <TextBlock
+                        Grid.Column="2"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        FontWeight="SemiBold"
+                        Foreground="{StaticResource AccentBrush}"
+                        Text="{Binding UiScaleLabel}" />
+                    <Button
+                        Grid.Column="3"
+                        Width="32"
+                        Height="28"
+                        Padding="0"
+                        Click="IncreaseUiScaleButton_Click"
+                        Content="A+"
+                        IsEnabled="{Binding CanIncreaseUiScale}"
+                        ToolTip="Increase interface size" />
+                    <Button
+                        Grid.Column="4"
+                        Height="28"
+                        Margin="7,0,0,0"
+                        Padding="8,0"
+                        Click="ResetUiScaleButton_Click"
+                        Content="100%"
+                        ToolTip="Reset interface size" />
+                </Grid>
+            </Border>
 
             <Border
                 DockPanel.Dock="Bottom"

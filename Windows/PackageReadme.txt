@@ -84,6 +84,10 @@ Click an account name to rename it. Names, compact-summary mode, and the
 always-on-top preference are stored in your local CodexBar settings; OAuth
 credentials remain in the provider-owned directories.
 
+The Aa button opens appearance settings. Use A-/A+ to scale the entire
+interface from 80% to 160%; 100% restores the default. The selected scale is
+saved automatically, which is useful on high-resolution and 4K monitors.
+
 The Summary button switches to a landscape one-line view. The diamond button
 toggles always-on-top. Minimize and close hide the window to the notification
 area without exiting CodexBar. Losing focus does not hide or reposition the

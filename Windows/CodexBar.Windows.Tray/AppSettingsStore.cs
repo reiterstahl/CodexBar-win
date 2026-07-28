@@ -64,6 +64,12 @@ public sealed class AppSettingsStore
         Save();
     }
 
+    public void SetUiScale(double value)
+    {
+        Settings.UiScale = value;
+        Save();
+    }
+
     private AppSettings Load()
     {
         try
@@ -79,6 +85,12 @@ public sealed class AppSettingsStore
             settings.AccountNames = new Dictionary<string, string>(
                 settings.AccountNames ?? new Dictionary<string, string>(),
                 StringComparer.OrdinalIgnoreCase);
+            if (!double.IsFinite(settings.UiScale) ||
+                settings.UiScale < MainWindowViewModel.MinimumUiScale ||
+                settings.UiScale > MainWindowViewModel.MaximumUiScale)
+            {
+                settings.UiScale = 1.0;
+            }
             return settings;
         }
         catch (IOException)
@@ -128,6 +140,8 @@ public sealed class AppSettings
     public bool CompactView { get; set; }
 
     public bool AlwaysOnTop { get; set; }
+
+    public double UiScale { get; set; } = 1.0;
 
     public double? WindowLeft { get; set; }
 

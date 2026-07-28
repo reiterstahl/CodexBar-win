@@ -8,17 +8,23 @@ namespace CodexBar.Windows.Tray;
 
 public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
+    public const double MinimumUiScale = 0.8;
+    public const double MaximumUiScale = 1.6;
+
     private readonly AppSettingsStore _settingsStore;
     private bool _isAlwaysOnTop;
     private bool _isCompact;
     private bool _isRefreshing;
+    private bool _isSettingsOpen;
     private string _status = "Starting…";
+    private double _uiScale;
 
     public MainWindowViewModel(AppSettingsStore settingsStore)
     {
         _settingsStore = settingsStore;
         _isAlwaysOnTop = settingsStore.Settings.AlwaysOnTop;
         _isCompact = settingsStore.Settings.CompactView;
+        _uiScale = settingsStore.Settings.UiScale;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -62,9 +68,62 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public string CompactButtonLabel => IsCompact ? "Cards" : "Summary";
 
+    public bool IsSettingsOpen
+    {
+        get => _isSettingsOpen;
+        private set => SetField(ref _isSettingsOpen, value);
+    }
+
+    public double UiScale
+    {
+        get => _uiScale;
+        private set
+        {
+            double scale = Math.Clamp(
+                Math.Round(value, 1),
+                MinimumUiScale,
+                MaximumUiScale);
+            if (!SetField(ref _uiScale, scale))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(UiScaleLabel));
+            OnPropertyChanged(nameof(CanDecreaseUiScale));
+            OnPropertyChanged(nameof(CanIncreaseUiScale));
+            _settingsStore.SetUiScale(scale);
+        }
+    }
+
+    public string UiScaleLabel => $"{UiScale:P0}";
+
+    public bool CanDecreaseUiScale => UiScale > MinimumUiScale;
+
+    public bool CanIncreaseUiScale => UiScale < MaximumUiScale;
+
     public void ToggleCompact()
     {
         IsCompact = !IsCompact;
+    }
+
+    public void ToggleSettings()
+    {
+        IsSettingsOpen = !IsSettingsOpen;
+    }
+
+    public void DecreaseUiScale()
+    {
+        UiScale -= 0.1;
+    }
+
+    public void IncreaseUiScale()
+    {
+        UiScale += 0.1;
+    }
+
+    public void ResetUiScale()
+    {
+        UiScale = 1.0;
     }
 
     public void BeginRefresh()

@@ -83,6 +83,26 @@ public partial class MainWindow : Window
         ViewModel.ToggleCompact();
     }
 
+    private void SettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ToggleSettings();
+    }
+
+    private void DecreaseUiScaleButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.DecreaseUiScale();
+    }
+
+    private void IncreaseUiScaleButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.IncreaseUiScale();
+    }
+
+    private void ResetUiScaleButton_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ResetUiScale();
+    }
+
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
         SaveWindowPosition();
@@ -97,7 +117,8 @@ public partial class MainWindow : Window
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainWindowViewModel.IsCompact))
+        if (e.PropertyName == nameof(MainWindowViewModel.IsCompact) ||
+            e.PropertyName == nameof(MainWindowViewModel.UiScale))
         {
             ApplyViewMode();
         }
@@ -109,7 +130,8 @@ public partial class MainWindow : Window
 
     private void ApplyViewMode()
     {
-        Width = ViewModel.IsCompact ? 820 : 440;
+        double baseWidth = ViewModel.IsCompact ? 820 : 440;
+        Width = baseWidth * ViewModel.UiScale;
     }
 
     private void EnsureWindowPosition()

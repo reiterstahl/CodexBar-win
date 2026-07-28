@@ -27,6 +27,8 @@ compact-summary mode, and always-on-top preference are stored in
 `%LOCALAPPDATA%\CodexBar\settings.json`. This file contains presentation preferences and profile
 directory identifiers only; it never contains OAuth credentials. The condensed card layout has no
 vertical scrollbar, and the window restores the last position selected by dragging its header.
+The **Aa** appearance panel scales the complete interface from 80% to 160% and persists the
+selection for high-resolution displays.
 
 ## Security boundary
 
