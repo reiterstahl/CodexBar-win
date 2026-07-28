@@ -63,7 +63,7 @@ public partial class App : System.Windows.Application
 
     private async Task RefreshAsync()
     {
-        if (_engineClient is null || _window is null || !await _refreshGate.WaitAsync(0))
+        if (_window is null || !await _refreshGate.WaitAsync(0))
         {
             return;
         }
