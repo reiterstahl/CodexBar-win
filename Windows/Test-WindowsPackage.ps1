@@ -2,14 +2,21 @@
 
 [CmdletBinding()]
 param(
-    [string] $PackageDirectory = $PSScriptRoot,
+    [string] $PackageDirectory,
     [switch] $Launch
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$PackageDirectory = [System.IO.Path]::GetFullPath($PackageDirectory)
+if ([string]::IsNullOrWhiteSpace($PackageDirectory)) {
+    $PackageDirectory = $PSScriptRoot
+}
+$packageDirectoryItem = Get-Item -LiteralPath $PackageDirectory -ErrorAction Stop
+if (-not $packageDirectoryItem.PSIsContainer) {
+    throw "PackageDirectory must identify an existing directory."
+}
+$PackageDirectory = $packageDirectoryItem.FullName
 $checksumPath = Join-Path $PackageDirectory "SHA256SUMS.txt"
 $enginePath = Join-Path $PackageDirectory "CodexBarWindowsEngine.exe"
 $trayPath = Join-Path $PackageDirectory "CodexBar.Windows.Tray.exe"
