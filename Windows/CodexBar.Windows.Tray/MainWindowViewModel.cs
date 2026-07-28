@@ -8,8 +8,18 @@ namespace CodexBar.Windows.Tray;
 
 public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
+    private readonly AppSettingsStore _settingsStore;
+    private bool _isAlwaysOnTop;
+    private bool _isCompact;
     private bool _isRefreshing;
     private string _status = "Starting…";
+
+    public MainWindowViewModel(AppSettingsStore settingsStore)
+    {
+        _settingsStore = settingsStore;
+        _isAlwaysOnTop = settingsStore.Settings.AlwaysOnTop;
+        _isCompact = settingsStore.Settings.CompactView;
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -22,6 +32,40 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     }
 
     public bool CanRefresh => !_isRefreshing;
+
+    public bool IsAlwaysOnTop
+    {
+        get => _isAlwaysOnTop;
+        set
+        {
+            if (!SetField(ref _isAlwaysOnTop, value))
+            {
+                return;
+            }
+            _settingsStore.SetAlwaysOnTop(value);
+        }
+    }
+
+    public bool IsCompact
+    {
+        get => _isCompact;
+        private set
+        {
+            if (!SetField(ref _isCompact, value))
+            {
+                return;
+            }
+            OnPropertyChanged(nameof(CompactButtonLabel));
+            _settingsStore.SetCompactView(value);
+        }
+    }
+
+    public string CompactButtonLabel => IsCompact ? "Cards" : "Summary";
+
+    public void ToggleCompact()
+    {
+        IsCompact = !IsCompact;
+    }
 
     public void BeginRefresh()
     {
@@ -42,9 +86,18 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         foreach (ProviderProfileResult result in results)
         {
+            string displayName = _settingsStore.DisplayName(result.Profile);
             Providers.Add(result.Snapshot is not null
-                ? ProviderCardViewModel.FromSnapshot(result.Profile, result.Snapshot)
-                : ProviderCardViewModel.FromFailure(result.Profile, result.Failure));
+                ? ProviderCardViewModel.FromSnapshot(
+                    result.Profile,
+                    displayName,
+                    result.Snapshot,
+                    RenameProfile)
+                : ProviderCardViewModel.FromFailure(
+                    result.Profile,
+                    displayName,
+                    result.Failure,
+                    RenameProfile));
         }
 
         DateTimeOffset generatedAt = results.Count == 0
@@ -58,15 +111,24 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         Status = message;
     }
 
-    private void SetField(ref string field, string value, [CallerMemberName] string? propertyName = null)
+    private void RenameProfile(ProviderProfile profile, string name)
     {
-        if (field == value)
+        _settingsStore.SetDisplayName(profile, name);
+    }
+
+    private bool SetField<T>(
+        ref T field,
+        T value,
+        [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
         {
-            return;
+            return false;
         }
 
         field = value;
         OnPropertyChanged(propertyName);
+        return true;
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -75,32 +137,92 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     }
 }
 
-public sealed record ProviderCardViewModel(
-    string DisplayName,
-    string Identity,
-    string ErrorMessage,
-    IReadOnlyList<RateWindowViewModel> Windows)
+public sealed class ProviderCardViewModel : INotifyPropertyChanged
 {
+    private readonly Action<ProviderProfile, string> _rename;
+    private string _displayName;
+
+    private ProviderCardViewModel(
+        ProviderProfile profile,
+        string displayName,
+        string identity,
+        string errorMessage,
+        IReadOnlyList<RateWindowViewModel> windows,
+        Action<ProviderProfile, string> rename)
+    {
+        Profile = profile;
+        _displayName = displayName;
+        Identity = identity;
+        ErrorMessage = errorMessage;
+        Windows = windows;
+        _rename = rename;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public ProviderProfile Profile { get; }
+
+    public string DisplayName
+    {
+        get => _displayName;
+        set
+        {
+            string name = string.IsNullOrWhiteSpace(value) ? Profile.Label : value.Trim();
+            if (_displayName == name)
+            {
+                return;
+            }
+
+            _displayName = name;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayName)));
+            _rename(Profile, name);
+        }
+    }
+
+    public string Identity { get; }
+
+    public string ErrorMessage { get; }
+
+    public IReadOnlyList<RateWindowViewModel> Windows { get; }
+
+    public string CompactSummary => ErrorMessage.Length > 0
+        ? ErrorMessage
+        : string.Join(
+            "  •  ",
+            Windows.Select(window => $"{window.Label}: {window.RemainingLabel}"));
+
     public static ProviderCardViewModel FromSnapshot(
         ProviderProfile profile,
-        ProviderSnapshot snapshot)
+        string displayName,
+        ProviderSnapshot snapshot,
+        Action<ProviderProfile, string> rename)
     {
         string identity = snapshot.Identity?.AccountEmail
             ?? snapshot.Identity?.Plan
             ?? string.Empty;
         return new ProviderCardViewModel(
-            profile.Label,
+            profile,
+            displayName,
             identity,
             string.Empty,
-            snapshot.Windows.Select(RateWindowViewModel.FromSnapshot).ToArray());
+            snapshot.Windows.Select(RateWindowViewModel.FromSnapshot).ToArray(),
+            rename);
     }
 
     public static ProviderCardViewModel FromFailure(
         ProviderProfile profile,
-        ProviderFailure? failure)
+        string displayName,
+        ProviderFailure? failure,
+        Action<ProviderProfile, string> rename)
     {
         string message = failure?.Message ?? "Provider data is unavailable.";
-        return new ProviderCardViewModel(profile.Label, string.Empty, message, []);
+        return new ProviderCardViewModel(
+            profile,
+            displayName,
+            string.Empty,
+            message,
+            [],
+            rename);
     }
 }
 

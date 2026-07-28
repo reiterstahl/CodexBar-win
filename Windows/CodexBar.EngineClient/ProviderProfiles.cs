@@ -5,6 +5,8 @@ public sealed record ProviderProfile(
     string Label,
     string ConfigDirectory)
 {
+    public string Key => $"{Provider}|{ConfigDirectory}".ToUpperInvariant();
+
     public string EnvironmentVariable => Provider switch
     {
         "codex" => "CODEX_HOME",

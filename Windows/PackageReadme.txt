@@ -52,3 +52,14 @@ each provider, run:
 
 Each account is queried in a separate short-lived engine process. The script
 does not copy tokens or change your primary Codex and Claude Code sessions.
+
+Window controls
+---------------
+
+Click an account name to rename it. Names, compact-summary mode, and the
+always-on-top preference are stored in your local CodexBar settings; OAuth
+credentials remain in the provider-owned directories.
+
+The Summary button switches to a landscape one-line view. The diamond button
+toggles always-on-top. Minimize and close hide the window to the notification
+area without exiting CodexBar. Losing focus does not hide the window.

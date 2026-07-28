@@ -6,9 +6,15 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\CodexBar.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CodexBar.EngineClient\CodexBar.EngineClient.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\CodexBar.ico" />
+    <Resource Include="Assets\CodexBarIcon.png" />
   </ItemGroup>
 </Project>

@@ -22,6 +22,11 @@ The native tray shell lives under `Windows/`. It is a dependency-free WPF applic
 .NET 10 LTS. `CodexBar.EngineClient` owns process execution and schema validation, while
 `CodexBar.Windows.Tray` only owns presentation, refresh scheduling, and tray interactions.
 
+The tray uses a dark theme with `#D9D900` accents and an original CodexBar icon. Account names,
+compact-summary mode, and always-on-top preference are stored in
+`%LOCALAPPDATA%\CodexBar\settings.json`. This file contains presentation preferences and profile
+directory identifiers only; it never contains OAuth credentials.
+
 ## Security boundary
 
 The engine reads provider-owned credential files:
@@ -141,7 +146,8 @@ not signed, so Windows SmartScreen can display a warning.
 ## Tray process boundary
 
 The tray launches the engine as a short-lived child process every five minutes or after a manual
-refresh. The process uses `UseShellExecute=false`, an argument list rather than a shell command,
+refresh. Multi-account profiles each receive an independent child process. Each process uses
+`UseShellExecute=false`, an argument list rather than a shell command,
 redirected standard output, a 45-second timeout, and a one-million-character response limit.
 
 Only schema-versioned JSON crosses this boundary. Standard error and malformed output are never

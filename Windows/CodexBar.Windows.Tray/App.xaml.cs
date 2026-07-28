@@ -1,5 +1,7 @@
 using System.Drawing;
+using System.IO;
 using System.Windows;
+using System.Windows.Resources;
 using System.Windows.Threading;
 using CodexBar.EngineClient;
 using Forms = System.Windows.Forms;
@@ -13,12 +15,14 @@ public partial class App : System.Windows.Application
     private DispatcherTimer? _refreshTimer;
     private Forms.NotifyIcon? _notifyIcon;
     private MainWindow? _window;
+    private AppSettingsStore? _settingsStore;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        _window = new MainWindow();
+        _settingsStore = new AppSettingsStore();
+        _window = new MainWindow(_settingsStore);
         _window.RefreshRequested += (_, _) => _ = RefreshAsync();
 
         var menu = new Forms.ContextMenuStrip();
@@ -30,7 +34,7 @@ public partial class App : System.Windows.Application
         _notifyIcon = new Forms.NotifyIcon
         {
             ContextMenuStrip = menu,
-            Icon = SystemIcons.Application,
+            Icon = LoadApplicationIcon(),
             Text = "CodexBar",
             Visible = true,
         };
@@ -170,19 +174,24 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        if (!_window.IsVisible)
-        {
-            _window.Show();
-            _window.UpdateLayout();
-        }
-
-        _window.PositionNearNotificationArea();
-        _window.Activate();
+        _window.RestoreFromTray();
     }
 
     private void ExitApplication()
     {
         _window?.CloseForExit();
         Shutdown();
+    }
+
+    private static Icon LoadApplicationIcon()
+    {
+        var resourceUri = new Uri(
+            "pack://application:,,,/CodexBar.Windows.Tray;component/Assets/CodexBar.ico",
+            UriKind.Absolute);
+        StreamResourceInfo resource = GetResourceStream(resourceUri)
+            ?? throw new InvalidOperationException("The CodexBar application icon is missing.");
+        using Stream stream = resource.Stream;
+        using var icon = new Icon(stream);
+        return (Icon)icon.Clone();
     }
 }
