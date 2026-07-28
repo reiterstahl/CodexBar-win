@@ -304,7 +304,7 @@
                                                                 Margin="6,0,8,0"
                                                                 VerticalAlignment="Center"
                                                                 Maximum="100"
-                                                                Value="{Binding UsedPercent}" />
+                                                                Value="{Binding UsedPercent, Mode=OneWay}" />
                                                             <TextBlock
                                                                 Grid.Column="2"
                                                                 VerticalAlignment="Center"
