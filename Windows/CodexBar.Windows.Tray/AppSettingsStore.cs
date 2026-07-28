@@ -57,6 +57,13 @@ public sealed class AppSettingsStore
         Save();
     }
 
+    public void SetWindowPosition(double left, double top)
+    {
+        Settings.WindowLeft = left;
+        Settings.WindowTop = top;
+        Save();
+    }
+
     private AppSettings Load()
     {
         try
@@ -121,4 +128,8 @@ public sealed class AppSettings
     public bool CompactView { get; set; }
 
     public bool AlwaysOnTop { get; set; }
+
+    public double? WindowLeft { get; set; }
+
+    public double? WindowTop { get; set; }
 }

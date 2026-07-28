@@ -25,7 +25,8 @@ The native tray shell lives under `Windows/`. It is a dependency-free WPF applic
 The tray uses a dark theme with `#D9D900` accents and an original CodexBar icon. Account names,
 compact-summary mode, and always-on-top preference are stored in
 `%LOCALAPPDATA%\CodexBar\settings.json`. This file contains presentation preferences and profile
-directory identifiers only; it never contains OAuth credentials.
+directory identifiers only; it never contains OAuth credentials. The condensed card layout has no
+vertical scrollbar, and the window restores the last position selected by dragging its header.
 
 ## Security boundary
 

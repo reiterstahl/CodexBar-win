@@ -6,16 +6,20 @@ namespace CodexBar.Windows.Tray;
 
 public partial class MainWindow : Window
 {
+    private readonly AppSettingsStore _settingsStore;
     private bool _allowClose;
+    private bool _positionInitialized;
 
     public MainWindow(AppSettingsStore settingsStore)
     {
         InitializeComponent();
+        _settingsStore = settingsStore;
         ViewModel = new MainWindowViewModel(settingsStore);
         DataContext = ViewModel;
         Topmost = ViewModel.IsAlwaysOnTop;
         ApplyViewMode();
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+        Deactivated += (_, _) => SaveWindowPosition();
         StateChanged += (_, _) =>
         {
             if (WindowState == WindowState.Minimized)
@@ -29,13 +33,6 @@ public partial class MainWindow : Window
 
     public MainWindowViewModel ViewModel { get; }
 
-    public void PositionNearNotificationArea()
-    {
-        Rect workArea = SystemParameters.WorkArea;
-        Left = Math.Max(workArea.Left, workArea.Right - Width - 12);
-        Top = Math.Max(workArea.Top, workArea.Bottom - ActualHeight - 12);
-    }
-
     public void RestoreFromTray()
     {
         if (WindowState == WindowState.Minimized)
@@ -44,7 +41,7 @@ public partial class MainWindow : Window
         }
         Show();
         UpdateLayout();
-        PositionNearNotificationArea();
+        EnsureWindowPosition();
         Activate();
     }
 
@@ -56,6 +53,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
+        SaveWindowPosition();
         if (!_allowClose)
         {
             e.Cancel = true;
@@ -76,6 +74,7 @@ public partial class MainWindow : Window
         if (e.ButtonState == MouseButtonState.Pressed)
         {
             DragMove();
+            SaveWindowPosition();
         }
     }
 
@@ -86,11 +85,13 @@ public partial class MainWindow : Window
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
+        SaveWindowPosition();
         WindowState = WindowState.Minimized;
     }
 
     private void HideButton_Click(object sender, RoutedEventArgs e)
     {
+        SaveWindowPosition();
         Hide();
     }
 
@@ -109,11 +110,63 @@ public partial class MainWindow : Window
     private void ApplyViewMode()
     {
         Width = ViewModel.IsCompact ? 820 : 440;
-        MaxHeight = ViewModel.IsCompact ? 520 : 720;
-        if (IsVisible)
+    }
+
+    private void EnsureWindowPosition()
+    {
+        if (_positionInitialized)
         {
-            UpdateLayout();
-            PositionNearNotificationArea();
+            return;
+        }
+
+        double? savedLeft = _settingsStore.Settings.WindowLeft;
+        double? savedTop = _settingsStore.Settings.WindowTop;
+        if (savedLeft is double left &&
+            savedTop is double top &&
+            IsVisibleOnScreen(left, top))
+        {
+            Left = left;
+            Top = top;
+        }
+        else
+        {
+            Rect workArea = SystemParameters.WorkArea;
+            Left = Math.Max(workArea.Left, workArea.Right - Width - 12);
+            Top = Math.Max(workArea.Top, workArea.Bottom - ActualHeight - 12);
+        }
+
+        _positionInitialized = true;
+        SaveWindowPosition();
+    }
+
+    private bool IsVisibleOnScreen(double left, double top)
+    {
+        if (!double.IsFinite(left) || !double.IsFinite(top))
+        {
+            return false;
+        }
+
+        var virtualScreen = new Rect(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+        var windowBounds = new Rect(
+            left,
+            top,
+            Width,
+            Math.Max(ActualHeight, MinHeight));
+        return virtualScreen.IntersectsWith(windowBounds);
+    }
+
+    private void SaveWindowPosition()
+    {
+        if (_positionInitialized &&
+            WindowState == WindowState.Normal &&
+            double.IsFinite(Left) &&
+            double.IsFinite(Top))
+        {
+            _settingsStore.SetWindowPosition(Left, Top);
         }
     }
 }

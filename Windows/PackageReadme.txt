@@ -68,4 +68,7 @@ credentials remain in the provider-owned directories.
 
 The Summary button switches to a landscape one-line view. The diamond button
 toggles always-on-top. Minimize and close hide the window to the notification
-area without exiting CodexBar. Losing focus does not hide the window.
+area without exiting CodexBar. Losing focus does not hide or reposition the
+window; the last position selected by dragging the header is restored later.
+The card layout is condensed so the normal four-account setup requires no
+vertical scrollbar.
