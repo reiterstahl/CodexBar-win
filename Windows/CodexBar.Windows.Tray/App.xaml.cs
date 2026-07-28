@@ -13,7 +13,6 @@ public partial class App : System.Windows.Application
     private DispatcherTimer? _refreshTimer;
     private Forms.NotifyIcon? _notifyIcon;
     private MainWindow? _window;
-    private EngineProcessClient? _engineClient;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -70,11 +69,12 @@ public partial class App : System.Windows.Application
 
         try
         {
-            _engineClient ??= new EngineProcessClient();
             _window.ViewModel.BeginRefresh();
-            EngineSnapshot snapshot = await _engineClient.FetchAsync(_shutdown.Token);
-            _window.ViewModel.Apply(snapshot);
-            UpdateTooltip(snapshot);
+            IReadOnlyList<ProviderProfile> profiles = ProviderProfileDiscovery.Discover();
+            ProviderProfileResult[] results = await Task.WhenAll(
+                profiles.Select(profile => FetchProfileAsync(profile, _shutdown.Token)));
+            _window.ViewModel.Apply(results);
+            UpdateTooltip(results);
         }
         catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
         {
@@ -90,18 +90,63 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private void UpdateTooltip(EngineSnapshot snapshot)
+    private static async Task<ProviderProfileResult> FetchProfileAsync(
+        ProviderProfile profile,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [profile.EnvironmentVariable] = profile.ConfigDirectory,
+            };
+            var client = new EngineProcessClient(
+                provider: profile.Provider,
+                environmentOverrides: environment);
+            EngineSnapshot engineSnapshot = await client.FetchAsync(cancellationToken);
+            ProviderSnapshot? providerSnapshot = engineSnapshot.Providers.SingleOrDefault(
+                provider => provider.Provider == profile.Provider);
+            ProviderFailure? failure = engineSnapshot.Failures.SingleOrDefault(
+                candidate => candidate.Provider == profile.Provider);
+            failure ??= providerSnapshot is null
+                ? new ProviderFailure(
+                    profile.Provider,
+                    "missing_result",
+                    $"{profile.Label} returned no usage information.")
+                : null;
+            return new ProviderProfileResult(
+                profile,
+                engineSnapshot.GeneratedAt,
+                providerSnapshot,
+                failure);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            return new ProviderProfileResult(
+                profile,
+                DateTimeOffset.Now,
+                null,
+                new ProviderFailure(profile.Provider, "engine_error", exception.Message));
+        }
+    }
+
+    private void UpdateTooltip(IReadOnlyList<ProviderProfileResult> results)
     {
         if (_notifyIcon is null)
         {
             return;
         }
 
-        string summary = snapshot.Providers.Length switch
+        int availableCount = results.Count(result => result.Snapshot is not null);
+        string summary = availableCount switch
         {
-            0 => "CodexBar — providers unavailable",
-            1 => $"CodexBar — {snapshot.Providers[0].DisplayName}",
-            _ => "CodexBar — Codex and Claude Code",
+            0 => "CodexBar — accounts unavailable",
+            1 => "CodexBar — 1 account",
+            _ => $"CodexBar — {availableCount} accounts",
         };
         _notifyIcon.Text = summary;
     }

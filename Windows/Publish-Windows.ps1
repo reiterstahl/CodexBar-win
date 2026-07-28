@@ -212,6 +212,8 @@ try {
 
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "Test-WindowsPackage.ps1") `
         -Destination (Join-Path $OutputDirectory "Test-CodexBar.ps1") -Force
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "Add-CodexBarAccounts.ps1") `
+        -Destination $OutputDirectory -Force
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "PackageReadme.txt") `
         -Destination (Join-Path $OutputDirectory "README.txt") -Force
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "THIRD-PARTY-NOTICES.md") `

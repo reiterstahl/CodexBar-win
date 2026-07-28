@@ -6,6 +6,7 @@ var tests = new (string Name, Action Run)[]
     ("rejects unsupported schema", RejectsUnsupportedSchema),
     ("rejects unknown provider", RejectsUnknownProvider),
     ("resolves explicit engine path", ResolvesExplicitEnginePath),
+    ("discovers isolated provider profiles", DiscoversIsolatedProviderProfiles),
 };
 
 foreach ((string name, Action run) in tests)
@@ -112,6 +113,42 @@ static void ResolvesExplicitEnginePath()
     finally
     {
         File.Delete(temporaryFile);
+    }
+}
+
+static void DiscoversIsolatedProviderProfiles()
+{
+    string temporaryDirectory = Path.Combine(
+        Path.GetTempPath(),
+        $"codexbar-profile-tests-{Guid.NewGuid():N}");
+    Directory.CreateDirectory(temporaryDirectory);
+    try
+    {
+        string secondCodex = Path.Combine(temporaryDirectory, ".codex-work");
+        string secondClaude = Path.Combine(temporaryDirectory, ".claude-personal");
+        string incompleteCodex = Path.Combine(temporaryDirectory, ".codex-incomplete");
+        Directory.CreateDirectory(secondCodex);
+        Directory.CreateDirectory(secondClaude);
+        Directory.CreateDirectory(incompleteCodex);
+        File.WriteAllText(Path.Combine(secondCodex, "auth.json"), "{}");
+        File.WriteAllText(Path.Combine(secondClaude, ".credentials.json"), "{}");
+
+        IReadOnlyList<ProviderProfile> profiles = ProviderProfileDiscovery.Discover(
+            temporaryDirectory,
+            new Dictionary<string, string?>());
+
+        Assert(profiles.Count == 4, "Expected two Codex and two Claude profiles.");
+        Assert(
+            profiles.Select(profile => profile.Label).SequenceEqual(
+                ["Codex", "Codex (work)", "Claude Code", "Claude Code (personal)"]),
+            "Expected stable provider profile labels.");
+        Assert(
+            profiles.All(profile => Path.IsPathFullyQualified(profile.ConfigDirectory)),
+            "Expected absolute profile directories.");
+    }
+    finally
+    {
+        Directory.Delete(temporaryDirectory, recursive: true);
     }
 }
 

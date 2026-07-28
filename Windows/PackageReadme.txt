@@ -40,3 +40,15 @@ Claude Code login:
 
 Refresh manually from the CodexBar tray menu after authenticating. The app also
 refreshes automatically every five minutes.
+
+Multiple accounts
+-----------------
+
+CodexBar can discover isolated profiles named .codex-* and .claude-* under
+your Windows user profile. To create and authenticate a second account for
+each provider, run:
+
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Add-CodexBarAccounts.ps1 -Login
+
+Each account is queried in a separate short-lived engine process. The script
+does not copy tokens or change your primary Codex and Claude Code sessions.

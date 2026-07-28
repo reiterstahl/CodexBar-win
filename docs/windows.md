@@ -35,6 +35,11 @@ The engine reads provider-owned credential files:
 override Claude Code's configuration directory. The engine never copies access tokens, refresh
 tokens, or API keys into CodexBar configuration and does not print them in its JSON output.
 
+The Windows tray discovers additional isolated accounts in `%USERPROFILE%\.codex-*` and
+`%USERPROFILE%\.claude-*` when their provider-owned credential files exist. It launches one
+short-lived engine process per account, passing only that profile's `CODEX_HOME` or
+`CLAUDE_CONFIG_DIR`. The default `.codex` and `.claude` sessions remain unchanged.
+
 Phase one does not refresh or persist rotated OAuth tokens. When a provider rejects or expires a
 credential, the engine reports a structured failure and asks the user to authenticate through the
 provider CLI. This avoids writing provider credentials on Windows before the Credential Manager
@@ -118,6 +123,17 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 
 This validation checks packaged hashes and starts the engine only with `--version`; it does not
 probe provider accounts. Launching the tray performs the normal provider refresh.
+
+To create and authenticate a second isolated account for each provider:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\Add-CodexBarAccounts.ps1 -Login
+```
+
+The default profile name is `2`, producing `%USERPROFILE%\.codex-2` and
+`%USERPROFILE%\.claude-2`. Pass `-ProfileName work` (or another short name) to create more
+profiles. Restart CodexBar or refresh after authentication.
 
 CI creates the same ZIP in the `CodexBar-win-x64` workflow artifact. This development preview is
 not signed, so Windows SmartScreen can display a warning.

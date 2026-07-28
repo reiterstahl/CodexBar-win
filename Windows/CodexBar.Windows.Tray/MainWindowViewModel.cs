@@ -36,23 +36,21 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanRefresh));
     }
 
-    public void Apply(EngineSnapshot snapshot)
+    public void Apply(IReadOnlyList<ProviderProfileResult> results)
     {
         Providers.Clear();
 
-        foreach (string providerName in new[] { "codex", "claude" })
+        foreach (ProviderProfileResult result in results)
         {
-            ProviderSnapshot? provider = snapshot.Providers.FirstOrDefault(
-                candidate => candidate.Provider == providerName);
-            ProviderFailure? failure = snapshot.Failures.FirstOrDefault(
-                candidate => candidate.Provider == providerName);
-
-            Providers.Add(provider is not null
-                ? ProviderCardViewModel.FromSnapshot(provider)
-                : ProviderCardViewModel.FromFailure(providerName, failure));
+            Providers.Add(result.Snapshot is not null
+                ? ProviderCardViewModel.FromSnapshot(result.Profile, result.Snapshot)
+                : ProviderCardViewModel.FromFailure(result.Profile, result.Failure));
         }
 
-        Status = $"Updated {snapshot.GeneratedAt.ToLocalTime():t}";
+        DateTimeOffset generatedAt = results.Count == 0
+            ? DateTimeOffset.Now
+            : results.Max(result => result.GeneratedAt);
+        Status = $"Updated {generatedAt.ToLocalTime():t}";
     }
 
     public void ApplyError(string message)
@@ -83,23 +81,26 @@ public sealed record ProviderCardViewModel(
     string ErrorMessage,
     IReadOnlyList<RateWindowViewModel> Windows)
 {
-    public static ProviderCardViewModel FromSnapshot(ProviderSnapshot snapshot)
+    public static ProviderCardViewModel FromSnapshot(
+        ProviderProfile profile,
+        ProviderSnapshot snapshot)
     {
         string identity = snapshot.Identity?.AccountEmail
             ?? snapshot.Identity?.Plan
             ?? string.Empty;
         return new ProviderCardViewModel(
-            snapshot.DisplayName,
+            profile.Label,
             identity,
             string.Empty,
             snapshot.Windows.Select(RateWindowViewModel.FromSnapshot).ToArray());
     }
 
-    public static ProviderCardViewModel FromFailure(string provider, ProviderFailure? failure)
+    public static ProviderCardViewModel FromFailure(
+        ProviderProfile profile,
+        ProviderFailure? failure)
     {
-        string displayName = provider == "codex" ? "Codex" : "Claude Code";
         string message = failure?.Message ?? "Provider data is unavailable.";
-        return new ProviderCardViewModel(displayName, string.Empty, message, []);
+        return new ProviderCardViewModel(profile.Label, string.Empty, message, []);
     }
 }
 

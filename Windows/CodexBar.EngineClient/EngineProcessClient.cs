@@ -7,12 +7,26 @@ public sealed class EngineProcessClient
 {
     private const int MaximumOutputCharacters = 1_000_000;
     private readonly string _enginePath;
+    private readonly string? _provider;
+    private readonly IReadOnlyDictionary<string, string> _environmentOverrides;
     private readonly TimeSpan _timeout;
 
-    public EngineProcessClient(string? enginePath = null, TimeSpan? timeout = null)
+    public EngineProcessClient(
+        string? enginePath = null,
+        TimeSpan? timeout = null,
+        string? provider = null,
+        IReadOnlyDictionary<string, string>? environmentOverrides = null)
     {
+        if (provider is not null && provider is not ("codex" or "claude"))
+        {
+            throw new ArgumentException("Provider must be codex or claude.", nameof(provider));
+        }
+
         _enginePath = enginePath ?? EngineLocator.Resolve();
         _timeout = timeout ?? TimeSpan.FromSeconds(45);
+        _provider = provider;
+        _environmentOverrides = environmentOverrides
+            ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<EngineSnapshot> FetchAsync(CancellationToken cancellationToken = default)
@@ -80,7 +94,16 @@ public sealed class EngineProcessClient
             RedirectStandardError = true,
             WorkingDirectory = Path.GetDirectoryName(_enginePath) ?? AppContext.BaseDirectory,
         };
+        if (_provider is not null)
+        {
+            startInfo.ArgumentList.Add("--provider");
+            startInfo.ArgumentList.Add(_provider);
+        }
         startInfo.ArgumentList.Add("--pretty");
+        foreach ((string name, string value) in _environmentOverrides)
+        {
+            startInfo.Environment[name] = value;
+        }
         return startInfo;
     }
 
