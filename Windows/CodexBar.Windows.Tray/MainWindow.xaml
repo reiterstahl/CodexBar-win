@@ -312,17 +312,26 @@
                                                                 FontWeight="SemiBold"
                                                                 Foreground="{StaticResource AccentBrush}"
                                                                 Text="{Binding RemainingLabel}" />
-                                                        <TextBlock
+                                                        <DockPanel
                                                             Grid.Row="1"
                                                             Grid.Column="1"
                                                             Grid.ColumnSpan="2"
                                                             Margin="6,1,0,0"
-                                                            HorizontalAlignment="Right"
-                                                            FontSize="9"
-                                                            Foreground="{StaticResource SecondaryTextBrush}"
-                                                            Text="{Binding ResetLabel}"
-                                                            TextTrimming="CharacterEllipsis"
-                                                            ToolTip="{Binding ResetLabel}" />
+                                                            LastChildFill="False">
+                                                            <TextBlock
+                                                                FontSize="10"
+                                                                FontWeight="SemiBold"
+                                                                Foreground="{StaticResource AccentBrush}"
+                                                                Text="{Binding CountdownLabel}" />
+                                                            <TextBlock
+                                                                DockPanel.Dock="Right"
+                                                                Margin="8,0,0,0"
+                                                                FontSize="9"
+                                                                Foreground="{StaticResource SecondaryTextBrush}"
+                                                                Text="{Binding ResetDateLabel}"
+                                                                TextTrimming="CharacterEllipsis"
+                                                                ToolTip="{Binding ResetDateLabel}" />
+                                                        </DockPanel>
                                                     </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>

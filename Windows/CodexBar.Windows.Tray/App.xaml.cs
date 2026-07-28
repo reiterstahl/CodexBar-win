@@ -12,6 +12,7 @@ public partial class App : System.Windows.Application
 {
     private readonly CancellationTokenSource _shutdown = new();
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
+    private DispatcherTimer? _clockTimer;
     private DispatcherTimer? _refreshTimer;
     private Forms.NotifyIcon? _notifyIcon;
     private MainWindow? _window;
@@ -53,12 +54,20 @@ public partial class App : System.Windows.Application
         _refreshTimer.Tick += (_, _) => _ = RefreshAsync();
         _refreshTimer.Start();
 
+        _clockTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMinutes(1),
+        };
+        _clockTimer.Tick += (_, _) => _window?.ViewModel.RefreshTimeLabels();
+        _clockTimer.Start();
+
         _ = RefreshAsync();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         _shutdown.Cancel();
+        _clockTimer?.Stop();
         _refreshTimer?.Stop();
         _notifyIcon?.Dispose();
         base.OnExit(e);

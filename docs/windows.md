@@ -28,7 +28,10 @@ compact-summary mode, and always-on-top preference are stored in
 directory identifiers only; it never contains OAuth credentials. The condensed card layout has no
 vertical scrollbar, and the window restores the last position selected by dragging its header.
 The **Aa** appearance panel scales the complete interface from 80% to 160% and persists the
-selection for high-resolution displays.
+selection for high-resolution displays. Reset timing is presented as a minute-level live
+countdown, with the short session first in Summary view and a full localized weekday/date for
+each reset. Countdown labels update every minute without launching provider processes; provider
+usage still refreshes every five minutes.
 
 ## Security boundary
 

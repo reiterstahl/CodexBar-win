@@ -170,6 +170,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         Status = message;
     }
 
+    public void RefreshTimeLabels()
+    {
+        foreach (ProviderCardViewModel provider in Providers)
+        {
+            provider.RefreshTimeLabels();
+        }
+    }
+
     private void RenameProfile(ProviderProfile profile, string name)
     {
         _settingsStore.SetDisplayName(profile, name);
@@ -244,11 +252,37 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<RateWindowViewModel> Windows { get; }
 
-    public string CompactSummary => ErrorMessage.Length > 0
-        ? ErrorMessage
-        : string.Join(
-            "  •  ",
-            Windows.Select(window => $"{window.Label}: {window.RemainingLabel}"));
+    public string CompactSummary
+    {
+        get
+        {
+            if (ErrorMessage.Length > 0)
+            {
+                return ErrorMessage;
+            }
+
+            RateWindowViewModel[] orderedWindows = Windows
+                .OrderByDescending(window => window.IsSession)
+                .ToArray();
+            return string.Join(
+                "  •  ",
+                orderedWindows.Select((window, index) => index == 0
+                    ? $"{window.Label}: {window.CountdownLabel} · " +
+                        $"{window.ResetDateLabel} · {window.RemainingLabel}"
+                    : window.ResetDateLabel.Length > 0
+                        ? $"{window.Label}: {window.ResetDateLabel} · {window.RemainingLabel}"
+                        : $"{window.Label}: {window.CountdownLabel} · {window.RemainingLabel}"));
+        }
+    }
+
+    public void RefreshTimeLabels()
+    {
+        foreach (RateWindowViewModel window in Windows)
+        {
+            window.RefreshTimeLabel();
+        }
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompactSummary)));
+    }
 
     public static ProviderCardViewModel FromSnapshot(
         ProviderProfile profile,
@@ -285,20 +319,99 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
     }
 }
 
-public sealed record RateWindowViewModel(
-    string Label,
-    double UsedPercent,
-    string RemainingLabel,
-    string ResetLabel)
+public sealed class RateWindowViewModel : INotifyPropertyChanged
 {
+    private static readonly CultureInfo SpanishCulture =
+        CultureInfo.GetCultureInfo("es-CR");
+
+    private RateWindowViewModel(
+        string id,
+        string label,
+        double usedPercent,
+        string remainingLabel,
+        DateTimeOffset? resetsAt)
+    {
+        Id = id;
+        Label = label;
+        UsedPercent = usedPercent;
+        RemainingLabel = remainingLabel;
+        ResetsAt = resetsAt;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public string Id { get; }
+
+    public string Label { get; }
+
+    public double UsedPercent { get; }
+
+    public string RemainingLabel { get; }
+
+    public DateTimeOffset? ResetsAt { get; }
+
+    public bool IsSession => Id.Equals("session", StringComparison.OrdinalIgnoreCase);
+
+    public string CountdownLabel => FormatCountdown(ResetsAt, DateTimeOffset.Now);
+
+    public string ResetDateLabel => ResetsAt is null
+        ? string.Empty
+        : ResetsAt.Value.ToLocalTime().ToString(
+            "dddd d 'de' MMMM, h:mm tt",
+            SpanishCulture);
+
     public static RateWindowViewModel FromSnapshot(RateWindow window)
     {
         string remaining = string.Create(
             CultureInfo.CurrentCulture,
-            $"{window.RemainingPercent:0.#}% left");
-        string reset = window.ResetsAt is null
-            ? string.Empty
-            : $"Resets {window.ResetsAt.Value.ToLocalTime():g}";
-        return new RateWindowViewModel(window.Label, window.UsedPercent, remaining, reset);
+            $"{window.RemainingPercent:0.#}% disponible");
+        return new RateWindowViewModel(
+            window.Id,
+            window.Label,
+            window.UsedPercent,
+            remaining,
+            window.ResetsAt);
+    }
+
+    public void RefreshTimeLabel()
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CountdownLabel)));
+    }
+
+    internal static string FormatCountdown(
+        DateTimeOffset? resetsAt,
+        DateTimeOffset now)
+    {
+        if (resetsAt is null)
+        {
+            return "Renovación no disponible";
+        }
+
+        TimeSpan remaining = resetsAt.Value - now;
+        if (remaining <= TimeSpan.Zero)
+        {
+            return "Renovando ahora";
+        }
+
+        int totalMinutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
+        if (totalMinutes <= 60)
+        {
+            return $"Renueva en {totalMinutes} min";
+        }
+
+        int totalHours = totalMinutes / 60;
+        int minutes = totalMinutes % 60;
+        if (totalHours < 24)
+        {
+            return minutes == 0
+                ? $"Renueva en {totalHours} h"
+                : $"Renueva en {totalHours} h {minutes} min";
+        }
+
+        int days = totalHours / 24;
+        int hours = totalHours % 24;
+        return hours == 0
+            ? $"Renueva en {days} d"
+            : $"Renueva en {days} d {hours} h";
     }
 }
