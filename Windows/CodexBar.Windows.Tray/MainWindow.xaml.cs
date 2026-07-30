@@ -69,6 +69,24 @@ public partial class MainWindow : Window
         RefreshRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    private void CopyLoginCommand_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: ProviderCardViewModel provider })
+        {
+            return;
+        }
+
+        try
+        {
+            System.Windows.Clipboard.SetText(provider.LoginCommand);
+            ViewModel.ShowStatus($"Login command copied for {provider.DisplayName}.");
+        }
+        catch (Exception)
+        {
+            ViewModel.ShowStatus("Could not copy the login command. Try again.");
+        }
+    }
+
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ButtonState == MouseButtonState.Pressed)

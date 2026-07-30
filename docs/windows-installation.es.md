@@ -171,6 +171,11 @@ Puedes hacer clic en el nombre de cada cuenta para cambiarlo. El botón **Aa**
 ajusta la escala de la interfaz entre 80% y 160%; **Summary** activa la vista
 apaisada y `◆` activa o desactiva “siempre encima”.
 
+Cada tarjeta incluye **Copy login**. Copia al portapapeles el bloque de
+PowerShell correcto para esa cuenta concreta, incluida su carpeta aislada. No
+incluye contraseñas, tokens ni otros secretos. En Summary el botón se muestra
+como **Copy**.
+
 Para comprobar el motor directamente:
 
 ```powershell

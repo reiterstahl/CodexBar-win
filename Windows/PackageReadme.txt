@@ -86,6 +86,10 @@ Click an account name to rename it. Names, compact-summary mode, and the
 always-on-top preference are stored in your local CodexBar settings; OAuth
 credentials remain in the provider-owned directories.
 
+Each account has a Copy login button. It copies a PowerShell block for that
+specific profile without copying any credentials: Codex uses device-code login
+and Claude Code uses its auth-login command.
+
 The Aa button opens appearance settings. Use A-/A+ to scale the entire
 interface from 80% to 160%; 100% restores the default. The selected scale is
 saved automatically, which is useful on high-resolution and 4K monitors.

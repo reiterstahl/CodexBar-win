@@ -170,6 +170,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         Status = message;
     }
 
+    public void ShowStatus(string message)
+    {
+        Status = message;
+    }
+
     public void RefreshTimeLabels()
     {
         foreach (ProviderCardViewModel provider in Providers)
@@ -252,6 +257,23 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<RateWindowViewModel> Windows { get; }
 
+    public string LoginCommand => Profile.Provider switch
+    {
+        "codex" => string.Join(
+            Environment.NewLine,
+            $"$env:CODEX_HOME = {PowerShellLiteral(Profile.ConfigDirectory)}",
+            "codex login --device-auth",
+            "codex login status",
+            "Remove-Item Env:CODEX_HOME"),
+        "claude" => string.Join(
+            Environment.NewLine,
+            $"$env:CLAUDE_CONFIG_DIR = {PowerShellLiteral(Profile.ConfigDirectory)}",
+            "claude auth login",
+            "claude auth status",
+            "Remove-Item Env:CLAUDE_CONFIG_DIR"),
+        _ => string.Empty,
+    };
+
     public string CompactSummary
     {
         get
@@ -282,6 +304,11 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
             window.RefreshTimeLabel();
         }
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompactSummary)));
+    }
+
+    private static string PowerShellLiteral(string value)
+    {
+        return $"'{value.Replace("'", "''")}'";
     }
 
     public static ProviderCardViewModel FromSnapshot(
