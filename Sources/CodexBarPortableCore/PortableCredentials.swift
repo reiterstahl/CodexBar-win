@@ -24,6 +24,10 @@ public protocol PortableCredentialFileReading: Sendable {
     func data(at url: URL) throws -> Data
 }
 
+public protocol PortableCredentialFileWriting: Sendable {
+    func replace(_ data: Data, at url: URL) throws
+}
+
 public struct PortableCredentialFileReader: PortableCredentialFileReading {
     public init() {}
 
@@ -32,6 +36,14 @@ public struct PortableCredentialFileReader: PortableCredentialFileReading {
             throw PortableCredentialFileReadError.notFound
         }
         return try Data(contentsOf: url)
+    }
+}
+
+public struct PortableCredentialFileWriter: PortableCredentialFileWriting {
+    public init() {}
+
+    public func replace(_ data: Data, at url: URL) throws {
+        try data.write(to: url, options: .atomic)
     }
 }
 
@@ -68,16 +80,42 @@ enum PortableCredentialLoader {
 
     static func loadClaude(
         environment: PortableHostEnvironment,
-        reader: any PortableCredentialFileReading = PortableCredentialFileReader(),
-        now: Date = Date()) throws -> PortableClaudeCredentials
+        reader: any PortableCredentialFileReading = PortableCredentialFileReader()) throws -> PortableClaudeCredentials
     {
         let url = environment.claudeCredentialsURL
         let data = try self.read(.claude, url: url, reader: reader)
-        let credentials = try self.parseClaude(data)
-        if let expiresAt = credentials.expiresAt, expiresAt <= now {
-            throw PortableCredentialError.expired(provider: .claude)
+        return try self.parseClaude(data)
+    }
+
+    static func saveClaude(
+        _ credentials: PortableClaudeCredentials,
+        environment: PortableHostEnvironment,
+        reader: any PortableCredentialFileReading,
+        writer: any PortableCredentialFileWriting) throws
+    {
+        let url = environment.claudeCredentialsURL
+        let original = try self.read(.claude, url: url, reader: reader)
+        guard var root = try? JSONSerialization.jsonObject(with: original) as? [String: Any],
+              var oauth = root["claudeAiOauth"] as? [String: Any]
+        else {
+            throw PortableCredentialError.invalid(provider: .claude, details: "malformed JSON")
         }
-        return credentials
+
+        oauth["accessToken"] = credentials.accessToken
+        if let refreshToken = credentials.refreshToken {
+            oauth["refreshToken"] = refreshToken
+        }
+        if let expiresAt = credentials.expiresAt {
+            oauth["expiresAt"] = Int64((expiresAt.timeIntervalSince1970 * 1_000).rounded())
+        }
+        root["claudeAiOauth"] = oauth
+
+        do {
+            let updated = try JSONSerialization.data(withJSONObject: root, options: [.sortedKeys])
+            try writer.replace(updated, at: url)
+        } catch {
+            throw PortableCredentialError.unreadable(provider: .claude, details: error.localizedDescription)
+        }
     }
 
     static func parseCodex(_ data: Data) throws -> PortableCodexCredentials {

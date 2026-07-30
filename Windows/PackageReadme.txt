@@ -90,6 +90,10 @@ Each account has a Copy login button. It copies a PowerShell block for that
 specific profile without copying any credentials: Codex uses device-code login
 and Claude Code uses its auth-login command.
 
+When a Claude Code access token expires, CodexBar refreshes it automatically
+using that profile's existing refresh token. A browser login is only needed if
+Claude Code has revoked the profile session.
+
 The Aa button opens appearance settings. Use A-/A+ to scale the entire
 interface from 80% to 160%; 100% restores the default. The selected scale is
 saved automatically, which is useful on high-resolution and 4K monitors.

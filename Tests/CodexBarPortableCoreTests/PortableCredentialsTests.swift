@@ -66,4 +66,44 @@ struct PortableCredentialsTests {
         #expect(credentials.expiresAt == Date(timeIntervalSince1970: 1_785_157_200))
         #expect(credentials.subscriptionType == "max")
     }
+
+    @Test
+    func `Claude Code refreshed credentials replace the access token atomically`() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let environment = PortableHostEnvironment(values: ["HOME": root.path])
+        try FileManager.default.createDirectory(
+            at: environment.claudeConfigDirectory,
+            withIntermediateDirectories: true)
+        try Data("""
+        {
+          "claudeAiOauth": {
+            "accessToken": "old-access",
+            "refreshToken": "old-refresh",
+            "expiresAt": 1000,
+            "subscriptionType": "pro"
+          },
+          "unrelatedSetting": true
+        }
+        """.utf8).write(to: environment.claudeCredentialsURL)
+
+        let refreshed = PortableClaudeCredentials(
+            accessToken: "new-access",
+            refreshToken: "new-refresh",
+            expiresAt: Date(timeIntervalSince1970: 1_785_157_200),
+            rateLimitTier: nil,
+            subscriptionType: "pro")
+        try PortableCredentialLoader.saveClaude(
+            refreshed,
+            environment: environment,
+            reader: PortableCredentialFileReader(),
+            writer: PortableCredentialFileWriter())
+
+        let saved = try PortableCredentialLoader.loadClaude(environment: environment)
+        #expect(saved.accessToken == "new-access")
+        #expect(saved.refreshToken == "new-refresh")
+        #expect(saved.expiresAt == Date(timeIntervalSince1970: 1_785_157_200))
+    }
 }

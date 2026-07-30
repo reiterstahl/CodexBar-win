@@ -176,6 +176,11 @@ PowerShell correcto para esa cuenta concreta, incluida su carpeta aislada. No
 incluye contraseñas, tokens ni otros secretos. En Summary el botón se muestra
 como **Copy**.
 
+Cuando el token de acceso de Claude Code vence, CodexBar renueva la sesión de
+forma automática con el refresh token ya guardado por Claude Code. No abre el
+navegador ni requiere volver a iniciar sesión. Solo necesitarás usar **Copy
+login** si Claude revoca la sesión o rechaza el refresh token.
+
 Para una referencia de los comandos de inicio/cierre de sesión por perfil,
 consulta [Comandos de cuentas de CodexBar para Windows](windows-account-commands.es.md).
 

@@ -105,6 +105,38 @@ struct PortableEngineTests {
         #expect(snapshot.failures.first?.provider == .codex)
         #expect(snapshot.failures.first?.code == "credentials_unreadable")
     }
+
+    @Test
+    func `Engine refreshes an expired Claude token and persists its rotation`() async throws {
+        let now = Date(timeIntervalSince1970: 1_785_000_000)
+        let environment = PortableHostEnvironment(values: ["HOME": "/users/tester"])
+        let store = MutableCredentialStore(values: [
+            environment.claudeCredentialsURL.path: Data("""
+            {
+              "claudeAiOauth": {
+                "accessToken": "expired-access",
+                "refreshToken": "old-refresh",
+                "expiresAt": 1000
+              }
+            }
+            """.utf8),
+        ])
+        let engine = CodexBarPortableEngine(
+            environment: environment,
+            credentialReader: store,
+            credentialWriter: store,
+            transport: RefreshingClaudeFixtureTransport(),
+            now: { now })
+
+        let snapshot = await engine.snapshot(providers: [.claude])
+
+        #expect(snapshot.providers.map(\.provider) == [.claude])
+        #expect(snapshot.failures.isEmpty)
+        let persisted = try PortableCredentialLoader.parseClaude(
+            try #require(store.value(at: environment.claudeCredentialsURL)))
+        #expect(persisted.accessToken == "refreshed-access")
+        #expect(persisted.refreshToken == "refreshed-refresh")
+    }
 }
 
 private struct MemoryCredentialReader: PortableCredentialFileReading {
@@ -122,6 +154,32 @@ private enum MemoryCredentialReaderError: Error {
     case notFound
 }
 
+private final class MutableCredentialStore: PortableCredentialFileReading, PortableCredentialFileWriting, @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [String: Data]
+
+    init(values: [String: Data]) {
+        self.values = values
+    }
+
+    func data(at url: URL) throws -> Data {
+        guard let value = self.value(at: url) else {
+            throw MemoryCredentialReaderError.notFound
+        }
+        return value
+    }
+
+    func replace(_ data: Data, at url: URL) throws {
+        self.lock.withLock {
+            self.values[url.path] = data
+        }
+    }
+
+    func value(at url: URL) -> Data? {
+        self.lock.withLock { self.values[url.path] }
+    }
+}
+
 private struct ProviderFixtureTransport: PortableHTTPTransport {
     let codex: Data
     let claude: Data
@@ -131,5 +189,27 @@ private struct ProviderFixtureTransport: PortableHTTPTransport {
             return PortableHTTPResponse(data: self.claude, statusCode: 200)
         }
         return PortableHTTPResponse(data: self.codex, statusCode: 200)
+    }
+}
+
+private struct RefreshingClaudeFixtureTransport: PortableHTTPTransport {
+    func response(for request: URLRequest) async throws -> PortableHTTPResponse {
+        if request.url?.host == "platform.claude.com" {
+            return PortableHTTPResponse(data: Data("""
+            {
+              "access_token": "refreshed-access",
+              "refresh_token": "refreshed-refresh",
+              "expires_in": 28800
+            }
+            """.utf8), statusCode: 200)
+        }
+        return PortableHTTPResponse(data: Data("""
+        {
+          "five_hour": {
+            "utilization": 21,
+            "resets_at": "2026-07-27T18:00:00Z"
+          }
+        }
+        """.utf8), statusCode: 200)
     }
 }

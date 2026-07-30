@@ -3,17 +3,20 @@ import Foundation
 public struct CodexBarPortableEngine: Sendable {
     private let environment: PortableHostEnvironment
     private let credentialReader: any PortableCredentialFileReading
+    private let credentialWriter: any PortableCredentialFileWriting
     private let transport: any PortableHTTPTransport
     private let now: @Sendable () -> Date
 
     public init(
         environment: PortableHostEnvironment = PortableHostEnvironment(),
         credentialReader: any PortableCredentialFileReading = PortableCredentialFileReader(),
+        credentialWriter: any PortableCredentialFileWriting = PortableCredentialFileWriter(),
         transport: any PortableHTTPTransport = PortableURLSessionTransport(),
         now: @escaping @Sendable () -> Date = Date.init)
     {
         self.environment = environment
         self.credentialReader = credentialReader
+        self.credentialWriter = credentialWriter
         self.transport = transport
         self.now = now
     }
@@ -54,10 +57,21 @@ public struct CodexBarPortableEngine: Sendable {
                 transport: self.transport,
                 now: self.now())
         case .claude:
-            let credentials = try PortableCredentialLoader.loadClaude(
+            var credentials = try PortableCredentialLoader.loadClaude(
                 environment: self.environment,
-                reader: self.credentialReader,
-                now: self.now())
+                reader: self.credentialReader)
+            let now = self.now()
+            if let expiresAt = credentials.expiresAt, expiresAt <= now {
+                credentials = try await PortableClaudeOAuthRefresher.refresh(
+                    credentials,
+                    transport: self.transport,
+                    now: now)
+                try PortableCredentialLoader.saveClaude(
+                    credentials,
+                    environment: self.environment,
+                    reader: self.credentialReader,
+                    writer: self.credentialWriter)
+            }
             let version = self.environment.values["CLAUDE_CODE_VERSION"]
             return try await PortableClaudeProvider.fetch(
                 credentials: credentials,
