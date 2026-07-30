@@ -9,7 +9,7 @@
     Background="Transparent"
     Icon="/CodexBar.Windows.Tray;component/Assets/CodexBar.ico"
     ResizeMode="CanMinimize"
-    ShowInTaskbar="False"
+    ShowInTaskbar="True"
     SizeToContent="Height"
     Topmost="{Binding IsAlwaysOnTop}"
     WindowStartupLocation="Manual"
@@ -106,7 +106,7 @@
                         Padding="0"
                         Click="MinimizeButton_Click"
                         Content="—"
-                        ToolTip="Minimize to notification area" />
+                        ToolTip="Minimize to taskbar" />
                     <Button
                         Width="34"
                         Height="30"

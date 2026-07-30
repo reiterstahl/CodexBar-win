@@ -95,8 +95,8 @@ interface from 80% to 160%; 100% restores the default. The selected scale is
 saved automatically, which is useful on high-resolution and 4K monitors.
 
 The Summary button switches to a landscape one-line view. The diamond button
-toggles always-on-top. Minimize and close hide the window to the notification
-area without exiting CodexBar. Losing focus does not hide or reposition the
+toggles always-on-top. Minimize sends the window to the taskbar; close hides
+it to the notification area without exiting CodexBar. Losing focus does not hide or reposition the
 window; the last position selected by dragging the header is restored later.
 The card layout is condensed so the normal four-account setup requires no
 vertical scrollbar. Reset timing is shown as a live countdown, prioritizing

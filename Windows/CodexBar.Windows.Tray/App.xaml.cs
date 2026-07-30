@@ -166,13 +166,13 @@ public partial class App : System.Windows.Application
 
     private void ToggleWindow()
     {
-        if (_window?.IsVisible == true)
+        if (_window?.WindowState == WindowState.Minimized || _window?.IsVisible != true)
         {
-            _window.Hide();
+            ShowWindow();
         }
         else
         {
-            ShowWindow();
+            _window.Hide();
         }
     }
 

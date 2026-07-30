@@ -20,13 +20,6 @@ public partial class MainWindow : Window
         ApplyViewMode();
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         Deactivated += (_, _) => SaveWindowPosition();
-        StateChanged += (_, _) =>
-        {
-            if (WindowState == WindowState.Minimized)
-            {
-                Hide();
-            }
-        };
     }
 
     public event EventHandler? RefreshRequested;
