@@ -176,6 +176,9 @@ PowerShell correcto para esa cuenta concreta, incluida su carpeta aislada. No
 incluye contraseñas, tokens ni otros secretos. En Summary el botón se muestra
 como **Copy**.
 
+Para una referencia de los comandos de inicio/cierre de sesión por perfil,
+consulta [Comandos de cuentas de CodexBar para Windows](windows-account-commands.es.md).
+
 Para comprobar el motor directamente:
 
 ```powershell
