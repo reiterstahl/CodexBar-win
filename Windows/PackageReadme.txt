@@ -102,6 +102,9 @@ The Summary button switches to a landscape one-line view. The diamond button
 toggles always-on-top. Minimize sends the window to the taskbar; close hides
 it to the notification area without exiting CodexBar. Losing focus does not hide or reposition the
 window; the last position selected by dragging the header is restored later.
+When a quota changes from exhausted to available, the notification-area icon
+alternates a yellow/green status badge. Double-click the tray icon to dismiss
+the alert; a single click continues to open or hide the window.
 The card layout is condensed so the normal four-account setup requires no
 vertical scrollbar. Reset timing is shown as a live countdown, prioritizing
 the short session in Summary view, with the full localized reset date beneath

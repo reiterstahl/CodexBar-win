@@ -176,6 +176,10 @@ PowerShell correcto para esa cuenta concreta, incluida su carpeta aislada. No
 incluye contraseñas, tokens ni otros secretos. En Summary el botón se muestra
 como **Copy**.
 
+Si una cuota estaba agotada y vuelve a estar disponible, el icono de la bandeja
+alterna un indicador amarillo/verde. Haz doble clic sobre el icono para
+descartar la alerta; un clic simple continúa mostrando u ocultando la ventana.
+
 Cuando el token de acceso de Claude Code vence, CodexBar renueva la sesión de
 forma automática con el refresh token ya guardado por Claude Code. No abre el
 navegador ni requiere volver a iniciar sesión. Solo necesitarás usar **Copy

@@ -1,5 +1,8 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Resources;
 using System.Windows.Threading;
@@ -14,9 +17,19 @@ public partial class App : System.Windows.Application
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
     private DispatcherTimer? _clockTimer;
     private DispatcherTimer? _refreshTimer;
+    private DispatcherTimer? _trayClickTimer;
+    private DispatcherTimer? _availabilityAlertTimer;
     private Forms.NotifyIcon? _notifyIcon;
+    private Icon? _normalIcon;
+    private Icon? _alertYellowIcon;
+    private Icon? _alertGreenIcon;
     private MainWindow? _window;
     private AppSettingsStore? _settingsStore;
+    private readonly Dictionary<string, bool> _quotaAvailability = new(StringComparer.OrdinalIgnoreCase);
+    private bool _hasQuotaBaseline;
+    private bool _availabilityAlertActive;
+    private bool _alertGreen;
+    private string _lastTooltipText = "CodexBar";
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -32,10 +45,13 @@ public partial class App : System.Windows.Application
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => ExitApplication());
 
+        _normalIcon = LoadApplicationIcon();
+        _alertYellowIcon = CreateStatusIcon(_normalIcon, Color.FromArgb(217, 217, 0));
+        _alertGreenIcon = CreateStatusIcon(_normalIcon, Color.FromArgb(57, 210, 112));
         _notifyIcon = new Forms.NotifyIcon
         {
             ContextMenuStrip = menu,
-            Icon = LoadApplicationIcon(),
+            Icon = _normalIcon,
             Text = "CodexBar",
             Visible = true,
         };
@@ -43,7 +59,15 @@ public partial class App : System.Windows.Application
         {
             if (eventArgs.Button == Forms.MouseButtons.Left)
             {
-                ToggleWindow();
+                ScheduleTrayToggle();
+            }
+        };
+        _notifyIcon.MouseDoubleClick += (_, eventArgs) =>
+        {
+            if (eventArgs.Button == Forms.MouseButtons.Left)
+            {
+                _trayClickTimer?.Stop();
+                DismissAvailabilityAlert();
             }
         };
 
@@ -53,6 +77,16 @@ public partial class App : System.Windows.Application
         };
         _refreshTimer.Tick += (_, _) => _ = RefreshAsync();
         _refreshTimer.Start();
+
+        _availabilityAlertTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(700),
+        };
+        _availabilityAlertTimer.Tick += (_, _) =>
+        {
+            _alertGreen = !_alertGreen;
+            ApplyAlertIcon();
+        };
 
         _clockTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
@@ -69,7 +103,12 @@ public partial class App : System.Windows.Application
         _shutdown.Cancel();
         _clockTimer?.Stop();
         _refreshTimer?.Stop();
+        _trayClickTimer?.Stop();
+        _availabilityAlertTimer?.Stop();
         _notifyIcon?.Dispose();
+        _normalIcon?.Dispose();
+        _alertYellowIcon?.Dispose();
+        _alertGreenIcon?.Dispose();
         base.OnExit(e);
     }
 
@@ -87,6 +126,7 @@ public partial class App : System.Windows.Application
             ProviderProfileResult[] results = await Task.WhenAll(
                 profiles.Select(profile => FetchProfileAsync(profile, _shutdown.Token)));
             _window.ViewModel.Apply(results);
+            UpdateQuotaAvailability(results);
             UpdateTooltip(results);
         }
         catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
@@ -161,7 +201,100 @@ public partial class App : System.Windows.Application
             1 => "CodexBar — 1 account",
             _ => $"CodexBar — {availableCount} accounts",
         };
-        _notifyIcon.Text = summary;
+        _lastTooltipText = _availabilityAlertActive
+            ? $"{summary} — quota available"
+            : summary;
+        _notifyIcon.Text = _lastTooltipText;
+    }
+
+    private void UpdateQuotaAvailability(IReadOnlyList<ProviderProfileResult> results)
+    {
+        bool quotaBecameAvailable = false;
+        foreach (ProviderProfileResult result in results)
+        {
+            if (result.Snapshot is null)
+            {
+                continue;
+            }
+
+            foreach (RateWindow window in result.Snapshot.Windows)
+            {
+                string key = $"{result.Profile.Key}|{window.Id}";
+                bool isAvailable = window.RemainingPercent > 0;
+                if (_hasQuotaBaseline &&
+                    isAvailable &&
+                    _quotaAvailability.TryGetValue(key, out bool wasAvailable) &&
+                    !wasAvailable)
+                {
+                    quotaBecameAvailable = true;
+                }
+                _quotaAvailability[key] = isAvailable;
+            }
+        }
+
+        _hasQuotaBaseline = true;
+        if (quotaBecameAvailable)
+        {
+            StartAvailabilityAlert();
+        }
+    }
+
+    private void StartAvailabilityAlert()
+    {
+        if (_availabilityAlertActive)
+        {
+            return;
+        }
+
+        _availabilityAlertActive = true;
+        _alertGreen = false;
+        ApplyAlertIcon();
+        _availabilityAlertTimer?.Start();
+    }
+
+    private void DismissAvailabilityAlert()
+    {
+        if (!_availabilityAlertActive)
+        {
+            return;
+        }
+
+        _availabilityAlertActive = false;
+        _availabilityAlertTimer?.Stop();
+        if (_notifyIcon is not null && _normalIcon is not null)
+        {
+            _notifyIcon.Icon = _normalIcon;
+            _notifyIcon.Text = _lastTooltipText.Replace(" — quota available", string.Empty, StringComparison.Ordinal);
+        }
+    }
+
+    private void ApplyAlertIcon()
+    {
+        if (!_availabilityAlertActive || _notifyIcon is null)
+        {
+            return;
+        }
+
+        Icon? icon = _alertGreen ? _alertGreenIcon : _alertYellowIcon;
+        if (icon is not null)
+        {
+            _notifyIcon.Icon = icon;
+        }
+    }
+
+    private void ScheduleTrayToggle()
+    {
+        _trayClickTimer?.Stop();
+        _trayClickTimer = new DispatcherTimer(DispatcherPriority.Input)
+        {
+            Interval = TimeSpan.FromMilliseconds(260),
+        };
+        _trayClickTimer.Tick += (_, _) =>
+        {
+            _trayClickTimer?.Stop();
+            ToggleWindow();
+        };
+        _trayClickTimer.Start();
     }
 
     private void ToggleWindow()
@@ -203,4 +336,44 @@ public partial class App : System.Windows.Application
         using var icon = new Icon(stream);
         return (Icon)icon.Clone();
     }
+
+    private static Icon CreateStatusIcon(Icon source, Color statusColor)
+    {
+        using Bitmap sourceBitmap = source.ToBitmap();
+        using var bitmap = new Bitmap(
+            sourceBitmap.Width,
+            sourceBitmap.Height,
+            PixelFormat.Format32bppArgb);
+        using (Graphics graphics = Graphics.FromImage(bitmap))
+        {
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.DrawImageUnscaled(sourceBitmap, 0, 0);
+
+            int diameter = Math.Max(6, bitmap.Width / 3);
+            int margin = Math.Max(1, bitmap.Width / 16);
+            var badge = new Rectangle(
+                bitmap.Width - diameter - margin,
+                bitmap.Height - diameter - margin,
+                diameter,
+                diameter);
+            using var outline = new Pen(Color.FromArgb(230, 16, 18, 22), Math.Max(1, bitmap.Width / 16));
+            using var fill = new SolidBrush(statusColor);
+            graphics.FillEllipse(fill, badge);
+            graphics.DrawEllipse(outline, badge);
+        }
+
+        IntPtr handle = bitmap.GetHicon();
+        try
+        {
+            using Icon icon = Icon.FromHandle(handle);
+            return (Icon)icon.Clone();
+        }
+        finally
+        {
+            DestroyIcon(handle);
+        }
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyIcon(IntPtr handle);
 }
