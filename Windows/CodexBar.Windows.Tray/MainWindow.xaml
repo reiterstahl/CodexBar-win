@@ -416,6 +416,7 @@
                                             VerticalAlignment="Center"
                                             FontSize="11"
                                             FontWeight="SemiBold"
+                                            Foreground="{StaticResource PrimaryTextBrush}"
                                             Text="{Binding DisplayName}"
                                             TextTrimming="CharacterEllipsis"
                                             ToolTip="{Binding DisplayName}" />
