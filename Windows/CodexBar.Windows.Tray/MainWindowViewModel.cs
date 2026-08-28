@@ -219,6 +219,7 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         string displayName,
         string identity,
         string errorMessage,
+        bool requiresLogin,
         IReadOnlyList<RateWindowViewModel> windows,
         Action<ProviderProfile, string> rename)
     {
@@ -226,6 +227,7 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         _displayName = displayName;
         Identity = identity;
         ErrorMessage = errorMessage;
+        RequiresLogin = requiresLogin;
         Windows = windows;
         _rename = rename;
     }
@@ -255,7 +257,14 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
 
     public string ErrorMessage { get; }
 
+    public bool HasError => ErrorMessage.Length > 0;
+
+    public bool RequiresLogin { get; }
+
     public IReadOnlyList<RateWindowViewModel> Windows { get; }
+
+    public RateWindowViewModel? SessionWindow =>
+        Windows.FirstOrDefault(window => window.IsSession);
 
     public string LoginCommand => Profile.Provider switch
     {
@@ -268,6 +277,7 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         "claude" => string.Join(
             Environment.NewLine,
             $"$env:CLAUDE_CONFIG_DIR = {PowerShellLiteral(Profile.ConfigDirectory)}",
+            "Write-Host 'When Claude asks for the code, paste with right-click or Shift+Insert. The code may remain invisible.'",
             "claude auth login",
             "claude auth status",
             "Remove-Item Env:CLAUDE_CONFIG_DIR"),
@@ -317,15 +327,21 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         ProviderSnapshot snapshot,
         Action<ProviderProfile, string> rename)
     {
-        string identity = snapshot.Identity?.AccountEmail
-            ?? snapshot.Identity?.Plan
-            ?? string.Empty;
+        string identity = ShortIdentity(snapshot.Identity);
+        IEnumerable<RateWindow> visibleWindows = snapshot.Windows;
+        if (profile.Provider.Equals("codex", StringComparison.OrdinalIgnoreCase))
+        {
+            visibleWindows = visibleWindows.Where(window =>
+                window.Id.Equals("session", StringComparison.OrdinalIgnoreCase) ||
+                window.Id.Equals("weekly", StringComparison.OrdinalIgnoreCase));
+        }
         return new ProviderCardViewModel(
             profile,
             displayName,
             identity,
             string.Empty,
-            snapshot.Windows.Select(RateWindowViewModel.FromSnapshot).ToArray(),
+            false,
+            visibleWindows.Select(RateWindowViewModel.FromSnapshot).ToArray(),
             rename);
     }
 
@@ -336,13 +352,31 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         Action<ProviderProfile, string> rename)
     {
         string message = failure?.Message ?? "Provider data is unavailable.";
+        bool requiresLogin = failure?.Code is
+            "credentials_not_found" or
+            "credentials_invalid" or
+            "credentials_expired" or
+            "unauthorized";
         return new ProviderCardViewModel(
             profile,
             displayName,
             string.Empty,
             message,
+            requiresLogin,
             [],
             rename);
+    }
+
+    private static string ShortIdentity(ProviderIdentity? identity)
+    {
+        string? email = identity?.AccountEmail?.Trim();
+        if (!string.IsNullOrEmpty(email))
+        {
+            int separator = email.IndexOf('@');
+            return separator > 0 ? email[..separator] : email;
+        }
+
+        return identity?.Plan?.Trim() ?? string.Empty;
     }
 }
 

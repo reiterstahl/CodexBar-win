@@ -141,7 +141,7 @@ public partial class MainWindow : Window
 
     private void ApplyViewMode()
     {
-        double baseWidth = ViewModel.IsCompact ? 820 : 440;
+        double baseWidth = ViewModel.IsCompact ? 620 : 440;
         Width = baseWidth * ViewModel.UiScale;
     }
 

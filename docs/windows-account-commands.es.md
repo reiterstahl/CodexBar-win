@@ -92,6 +92,9 @@ Remove-Item Env:CLAUDE_CONFIG_DIR
 Al iniciar sesión, Claude abre una URL. Ábrela con el navegador que tenga la
 cuenta correcta. Si solicita un código al volver a PowerShell, pega únicamente
 el código mostrado por la página de autorización: no pegues la URL completa.
+En la consola clásica usa clic derecho o `Shift+Insert`; Claude puede no mostrar
+los caracteres mientras los pega. Asegúrate también de que la ruta del segundo
+perfil sea exactamente `$env:USERPROFILE\.claude-2`.
 
 Para otro perfil, por ejemplo `trabajo`, cambia `.claude-2` por
 `.claude-trabajo`.

@@ -86,9 +86,11 @@ Click an account name to rename it. Names, compact-summary mode, and the
 always-on-top preference are stored in your local CodexBar settings; OAuth
 credentials remain in the provider-owned directories.
 
-Each account has a Copy login button. It copies a PowerShell block for that
-specific profile without copying any credentials: Codex uses device-code login
-and Claude Code uses its auth-login command.
+When an account is signed out, its card shows a Copy login button. It copies a
+PowerShell block for that specific profile without copying any credentials:
+Codex uses device-code login and Claude Code uses its auth-login command. For
+Claude's code prompt, use right-click or Shift+Insert; the pasted code may not
+be echoed by the CLI.
 
 When a Claude Code access token expires, CodexBar refreshes it automatically
 using that profile's existing refresh token. A browser login is only needed if
@@ -98,7 +100,8 @@ The Aa button opens appearance settings. Use A-/A+ to scale the entire
 interface from 80% to 160%; 100% restores the default. The selected scale is
 saved automatically, which is useful on high-resolution and 4K monitors.
 
-The Summary button switches to a landscape one-line view. The diamond button
+The Summary button switches to a compact landscape view with only each
+account's session graph and reset countdown. The diamond button
 toggles always-on-top. Minimize sends the window to the taskbar; close hides
 it to the notification area without exiting CodexBar. Losing focus does not hide or reposition the
 window; the last position selected by dragging the header is restored later.

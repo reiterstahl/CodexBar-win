@@ -171,10 +171,22 @@ Puedes hacer clic en el nombre de cada cuenta para cambiarlo. El botón **Aa**
 ajusta la escala de la interfaz entre 80% y 160%; **Summary** activa la vista
 apaisada y `◆` activa o desactiva “siempre encima”.
 
-Cada tarjeta incluye **Copy login**. Copia al portapapeles el bloque de
-PowerShell correcto para esa cuenta concreta, incluida su carpeta aislada. No
-incluye contraseñas, tokens ni otros secretos. En Summary el botón se muestra
-como **Copy**.
+Cuando una cuenta no tiene una sesión válida, su tarjeta muestra **Copy
+login**. El botón copia al portapapeles el bloque de PowerShell correcto para
+esa cuenta concreta, incluida su carpeta aislada. No incluye contraseñas,
+tokens ni otros secretos. El botón permanece oculto mientras la sesión es
+válida; en Summary se muestra como **Login**.
+
+Cuando Claude muestre `Paste code here`, pega el código con clic derecho o
+`Shift+Insert`. Claude puede ocultar los caracteres pegados, por lo que el
+campo puede parecer vacío. Usa solamente el código de la autorización que
+acabas de iniciar; un código anterior, incompleto o acompañado por la URL puede
+producir HTTP 400.
+
+La identidad visible de una cuenta con correo muestra únicamente la parte
+anterior a `@`. Summary usa una vista pequeña con solo la barra gráfica de la
+sesión y su cuenta regresiva. Para Codex, las vistas muestran únicamente
+**Session** y **Weekly**; se omiten cuotas de modelo adicionales.
 
 Si una cuota estaba agotada y vuelve a estar disponible, el icono de la bandeja
 alterna un indicador amarillo/verde. Haz doble clic sobre el icono para

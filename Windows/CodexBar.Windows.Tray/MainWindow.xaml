@@ -258,7 +258,8 @@
                                                 Padding="7,2"
                                                 Click="CopyLoginCommand_Click"
                                                 Content="Copy login"
-                                                ToolTip="Copy the login command for this account" />
+                                                ToolTip="Copy the login command for this account"
+                                                Visibility="{Binding RequiresLogin, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                             <Border
                                                 Grid.Column="2"
                                                 Margin="6,0,0,0"
@@ -365,46 +366,59 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border
-                                    Margin="0,0,0,7"
-                                    Padding="12,10"
+                                    Margin="0,0,0,4"
+                                    Padding="9,6"
                                     Background="{StaticResource SurfaceBrush}"
                                     BorderBrush="{StaticResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="8">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="170" />
-                                            <ColumnDefinition Width="130" />
+                                            <ColumnDefinition Width="145" />
                                             <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <TextBox
                                             VerticalAlignment="Center"
+                                            FontSize="11"
                                             FontWeight="SemiBold"
                                             MaxLength="40"
                                             Text="{Binding DisplayName, UpdateSourceTrigger=LostFocus}"
                                             ToolTip="Click to rename this account" />
-                                        <TextBlock
+                                        <Grid
                                             Grid.Column="1"
-                                            Margin="16,0"
-                                            VerticalAlignment="Center"
-                                            Foreground="{StaticResource SecondaryTextBrush}"
-                                            Text="{Binding Identity}"
-                                            TextTrimming="CharacterEllipsis" />
+                                            Margin="8,0,8,0"
+                                            VerticalAlignment="Center">
+                                            <ProgressBar
+                                                Height="7"
+                                                Maximum="100"
+                                                Value="{Binding SessionWindow.UsedPercent, Mode=OneWay}" />
+                                            <TextBlock
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                FontSize="9"
+                                                Foreground="#FF7777"
+                                                Text="{Binding ErrorMessage}"
+                                                TextTrimming="CharacterEllipsis"
+                                                Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        </Grid>
                                         <TextBlock
                                             Grid.Column="2"
                                             VerticalAlignment="Center"
+                                            FontSize="10"
                                             Foreground="{StaticResource AccentBrush}"
-                                            Text="{Binding CompactSummary}"
+                                            Text="{Binding SessionWindow.CountdownLabel}"
                                             TextTrimming="CharacterEllipsis" />
                                         <Button
                                             Grid.Column="3"
-                                            Height="26"
+                                            Height="24"
                                             Margin="8,0,0,0"
-                                            Padding="8,2"
+                                            Padding="7,2"
                                             Click="CopyLoginCommand_Click"
-                                            Content="Copy"
-                                            ToolTip="Copy the login command for this account" />
+                                            Content="Login"
+                                            ToolTip="Copy the login command for this account"
+                                            Visibility="{Binding RequiresLogin, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
