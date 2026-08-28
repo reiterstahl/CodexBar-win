@@ -212,6 +212,41 @@ imprime tokens ni contraseñas.
 
 ## 7. Actualizar CodexBar
 
+### Actualización completa con una sola orden
+
+En la PC de compilación, el script `Update-CodexBar.ps1` actualiza `main`,
+genera el ZIP, lo extrae temporalmente, reinstala CodexBar con acceso directo
+de Escritorio e inicio automático, vuelve a abrir la aplicación y elimina la
+extracción temporal:
+
+Después de descargar el actualizador por primera vez, basta con hacer doble
+clic en **`Update-CodexBar.cmd`**, ubicado en la raíz del repositorio. La
+ventana permanece abierta al terminar para mostrar el resultado.
+
+También se puede iniciar desde PowerShell con una sola orden:
+
+```powershell
+cd $env:USERPROFILE\source\CodexBar-win
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\Windows\Update-CodexBar.ps1
+```
+
+El ZIP actualizado permanece en el Escritorio como
+`CodexBar-Windows.zip`. El script se detiene antes de descargar cambios si el
+repositorio no está en la rama `main` o contiene modificaciones locales sin
+guardar.
+
+Opcionalmente, ejecuta también todas las pruebas durante la actualización:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\Windows\Update-CodexBar.ps1 `
+  -RunTests
+```
+
+### Actualización manual desde un ZIP
+
 Extrae un ZIP nuevo en otra carpeta y ejecuta nuevamente su instalador:
 
 ```powershell
