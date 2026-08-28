@@ -13,6 +13,7 @@
     SizeToContent="Height"
     Topmost="{Binding IsAlwaysOnTop}"
     WindowStartupLocation="Manual"
+    PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown"
     WindowStyle="None">
     <Border
         Background="{StaticResource AppBackgroundBrush}"
@@ -39,6 +40,16 @@
                 Margin="12,3,7,0"
                 Background="Transparent"
                 MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCompact}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -190,6 +201,16 @@
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="9">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCompact}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <DockPanel LastChildFill="False">
                     <StackPanel Orientation="Horizontal">
                         <Ellipse

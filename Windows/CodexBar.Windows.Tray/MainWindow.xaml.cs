@@ -112,6 +112,19 @@ public partial class MainWindow : Window
         }
     }
 
+    private void Window_PreviewMouseLeftButtonDown(
+        object sender,
+        MouseButtonEventArgs e)
+    {
+        if (ViewModel.IsCompact &&
+            e.ChangedButton == MouseButton.Left &&
+            e.ClickCount >= 2)
+        {
+            ViewModel.ToggleCompact();
+            e.Handled = true;
+        }
+    }
+
     private void CompactButton_Click(object sender, RoutedEventArgs e)
     {
         ViewModel.ToggleCompact();
@@ -165,6 +178,7 @@ public partial class MainWindow : Window
     private void ApplyViewMode()
     {
         Width = 440 * ViewModel.UiScale;
+        MinHeight = ViewModel.IsCompact ? 0 : 220;
     }
 
     private void EnsureWindowPosition()

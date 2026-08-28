@@ -103,7 +103,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void ToggleCompact()
     {
-        IsCompact = !IsCompact;
+        bool compact = !IsCompact;
+        if (compact)
+        {
+            IsSettingsOpen = false;
+        }
+        IsCompact = compact;
     }
 
     public void ToggleSettings()
