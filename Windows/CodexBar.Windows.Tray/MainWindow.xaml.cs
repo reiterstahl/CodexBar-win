@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private System.Drawing.Icon? _taskbarLargeIcon;
     private MemoryStream? _taskbarSmallIconStream;
     private MemoryStream? _taskbarLargeIconStream;
+    private System.Windows.Point? _compactDragOrigin;
     private bool _allowClose;
     private bool _positionInitialized;
 
@@ -116,12 +117,72 @@ public partial class MainWindow : Window
         object sender,
         MouseButtonEventArgs e)
     {
-        if (ViewModel.IsCompact &&
-            e.ChangedButton == MouseButton.Left &&
-            e.ClickCount >= 2)
+        if (!ViewModel.IsCompact || e.ChangedButton != MouseButton.Left)
         {
+            return;
+        }
+
+        if (e.ClickCount >= 2)
+        {
+            CancelCompactDrag();
             ViewModel.ToggleCompact();
             e.Handled = true;
+            return;
+        }
+
+        _compactDragOrigin = e.GetPosition(this);
+        CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void Window_PreviewMouseMove(
+        object sender,
+        System.Windows.Input.MouseEventArgs e)
+    {
+        if (!ViewModel.IsCompact ||
+            _compactDragOrigin is not System.Windows.Point origin ||
+            e.LeftButton != MouseButtonState.Pressed)
+        {
+            return;
+        }
+
+        System.Windows.Point current = e.GetPosition(this);
+        if (Math.Abs(current.X - origin.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(current.Y - origin.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        CancelCompactDrag();
+        try
+        {
+            DragMove();
+            SaveWindowPosition();
+        }
+        catch (InvalidOperationException)
+        {
+            // The mouse button was released before Windows began the move operation.
+        }
+        e.Handled = true;
+    }
+
+    private void Window_PreviewMouseLeftButtonUp(
+        object sender,
+        MouseButtonEventArgs e)
+    {
+        if (_compactDragOrigin is not null)
+        {
+            CancelCompactDrag();
+            e.Handled = true;
+        }
+    }
+
+    private void CancelCompactDrag()
+    {
+        _compactDragOrigin = null;
+        if (IsMouseCaptured)
+        {
+            ReleaseMouseCapture();
         }
     }
 

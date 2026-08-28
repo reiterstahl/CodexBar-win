@@ -14,6 +14,8 @@
     Topmost="{Binding IsAlwaysOnTop}"
     WindowStartupLocation="Manual"
     PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown"
+    PreviewMouseLeftButtonUp="Window_PreviewMouseLeftButtonUp"
+    PreviewMouseMove="Window_PreviewMouseMove"
     WindowStyle="None">
     <Border
         Background="{StaticResource AppBackgroundBrush}"
@@ -238,7 +240,17 @@
                 </DockPanel>
             </Border>
 
-            <Grid Margin="12,2,12,0">
+            <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Margin" Value="12,2,12,0" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCompact}" Value="True">
+                                    <Setter Property="Margin" Value="6" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
                     <ItemsControl ItemsSource="{Binding Providers}">
                         <ItemsControl.Style>
                             <Style TargetType="ItemsControl">
@@ -387,7 +399,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border
-                                    Margin="0,0,0,4"
+                                    Margin="0,2"
                                     Padding="9,6"
                                     Background="{StaticResource SurfaceBrush}"
                                     BorderBrush="{StaticResource BorderBrush}"
@@ -400,13 +412,13 @@
                                             <ColumnDefinition Width="62" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBox
+                                        <TextBlock
                                             VerticalAlignment="Center"
                                             FontSize="11"
                                             FontWeight="SemiBold"
-                                            MaxLength="40"
-                                            Text="{Binding DisplayName, UpdateSourceTrigger=LostFocus}"
-                                            ToolTip="Click to rename this account" />
+                                            Text="{Binding DisplayName}"
+                                            TextTrimming="CharacterEllipsis"
+                                            ToolTip="{Binding DisplayName}" />
                                         <Grid
                                             Grid.Column="1"
                                             Margin="6,0"
