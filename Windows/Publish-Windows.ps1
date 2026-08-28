@@ -74,6 +74,42 @@ function Add-RuntimeCandidates {
         }
 }
 
+function Find-SwiftExecutable {
+    $command = Get-Command "swift.exe" -ErrorAction SilentlyContinue
+    if ($null -ne $command) {
+        return [System.IO.Path]::GetFullPath($command.Source)
+    }
+
+    $toolchainRoots = [System.Collections.Generic.List[string]]::new()
+    if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+        $toolchainRoots.Add((Join-Path $env:LOCALAPPDATA "Programs\Swift\Toolchains"))
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:ProgramFiles)) {
+        $toolchainRoots.Add((Join-Path $env:ProgramFiles "Swift\Toolchains"))
+    }
+
+    foreach ($toolchainRoot in $toolchainRoots) {
+        if (-not (Test-Path -LiteralPath $toolchainRoot -PathType Container)) {
+            continue
+        }
+
+        $candidate = Get-ChildItem -LiteralPath $toolchainRoot -Directory |
+            Sort-Object -Property LastWriteTimeUtc -Descending |
+            ForEach-Object { Join-Path $_.FullName "usr\bin\swift.exe" } |
+            Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+            Select-Object -First 1
+        if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+            return [System.IO.Path]::GetFullPath($candidate)
+        }
+    }
+
+    throw @"
+Swift could not be found. Install it with:
+  winget install --id Swift.Toolchain -e --source winget
+Then open a new PowerShell window and retry.
+"@
+}
+
 function Find-SwiftRuntimeDirectory {
     param(
         [Parameter(Mandatory = $true)]
@@ -141,9 +177,12 @@ if (-not [Environment]::Is64BitOperatingSystem) {
     throw "The win-x64 package requires 64-bit Windows."
 }
 
-$swiftCommand = Get-Command "swift.exe" -ErrorAction Stop
+$swiftExecutable = Find-SwiftExecutable
+$swiftRuntimeDirectory = Find-SwiftRuntimeDirectory -SwiftExecutable $swiftExecutable
+$swiftBinDirectory = Split-Path -Parent $swiftExecutable
+$env:Path = "$swiftBinDirectory;$swiftRuntimeDirectory;$env:Path"
 Get-Command "dotnet.exe" -ErrorAction Stop | Out-Null
-$swiftVersionOutput = @(& swift.exe --version)
+$swiftVersionOutput = @(& $swiftExecutable --version)
 if ($LASTEXITCODE -ne 0 -or $swiftVersionOutput.Count -eq 0) {
     throw "The installed Swift toolchain did not report its version."
 }
@@ -156,7 +195,7 @@ if ($swiftVersionLine -match "Swift version ([0-9]+(?:\.[0-9]+){1,2})") {
 Push-Location $repositoryRoot
 try {
     if (-not $SkipTests) {
-        Invoke-CheckedCommand -Command "swift.exe" -Arguments @("test", "--filter", "Portable")
+        Invoke-CheckedCommand -Command $swiftExecutable -Arguments @("test", "--filter", "Portable")
         Invoke-CheckedCommand -Command "dotnet.exe" -Arguments @(
             "run",
             "--project", "Windows\CodexBar.EngineClient.Tests\CodexBar.EngineClient.Tests.csproj",
@@ -164,11 +203,11 @@ try {
         )
     }
 
-    Invoke-CheckedCommand -Command "swift.exe" -Arguments @(
+    Invoke-CheckedCommand -Command $swiftExecutable -Arguments @(
         "build", "-c", $Configuration.ToLowerInvariant(), "--product", "CodexBarWindowsEngine"
     )
     $releaseConfiguration = $Configuration.ToLowerInvariant()
-    $engineDirectoryOutput = & swift.exe build -c $releaseConfiguration `
+    $engineDirectoryOutput = & $swiftExecutable build -c $releaseConfiguration `
         --product CodexBarWindowsEngine --show-bin-path
     if ($LASTEXITCODE -ne 0) {
         throw "'swift build --show-bin-path' exited with code $LASTEXITCODE."
@@ -203,7 +242,7 @@ try {
     Copy-Item -Path (Join-Path $publishDirectory "*") -Destination $OutputDirectory -Recurse -Force
     Copy-Item -LiteralPath $enginePath -Destination $OutputDirectory -Force
 
-    $runtimeDirectory = Find-SwiftRuntimeDirectory -SwiftExecutable $swiftCommand.Source `
+    $runtimeDirectory = Find-SwiftRuntimeDirectory -SwiftExecutable $swiftExecutable `
         -SwiftVersion $swiftVersion
     $excludedMicrosoftRuntimePatterns = @(
         "api-ms-win-*.dll",

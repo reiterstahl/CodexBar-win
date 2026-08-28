@@ -242,6 +242,21 @@ La desinstalación nunca elimina `%USERPROFILE%\.codex*` ni
 
 ## Solución de problemas
 
+### `swift.exe` no se reconoce al crear el ZIP
+
+`Publish-Windows.ps1` busca automáticamente Swift en el `PATH`, en
+`%LOCALAPPDATA%\Programs\Swift` y en `%ProgramFiles%\Swift`. También añade al
+proceso tanto el toolchain como sus DLL de runtime; Swift puede cerrarse sin
+mostrar versión si solo se agrega la carpeta `Toolchains` al `PATH`.
+
+Si Swift realmente no está instalado, usa el paquete oficial y abre una nueva
+ventana de PowerShell:
+
+```powershell
+winget install --id Swift.Toolchain -e --source winget
+swift --version
+```
+
 ### `codex` o `claude` no se reconoce
 
 Cierra todas las ventanas de PowerShell y abre una nueva. Después ejecuta:
