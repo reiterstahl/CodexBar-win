@@ -376,7 +376,7 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="110" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="62" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <TextBox
@@ -390,11 +390,25 @@
                                             Grid.Column="1"
                                             Margin="6,0"
                                             VerticalAlignment="Center">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
                                             <ProgressBar
+                                                Grid.Column="0"
                                                 Height="7"
+                                                Margin="0,0,5,0"
                                                 Maximum="100"
                                                 Value="{Binding SessionWindow.UsedPercent, Mode=OneWay}" />
                                             <TextBlock
+                                                Grid.Column="1"
+                                                VerticalAlignment="Center"
+                                                FontSize="9"
+                                                FontWeight="SemiBold"
+                                                Foreground="{StaticResource AccentBrush}"
+                                                Text="{Binding SessionWindow.UsedPercentLabel}" />
+                                            <TextBlock
+                                                Grid.ColumnSpan="2"
                                                 HorizontalAlignment="Center"
                                                 VerticalAlignment="Center"
                                                 FontSize="9"
@@ -410,7 +424,7 @@
                                             FontSize="9"
                                             Foreground="{StaticResource AccentBrush}"
                                             TextAlignment="Right"
-                                            Text="{Binding SessionWindow.CountdownLabel}"
+                                            Text="{Binding SessionWindow.CompactCountdownLabel}"
                                             TextTrimming="CharacterEllipsis" />
                                         <Button
                                             Grid.Column="3"

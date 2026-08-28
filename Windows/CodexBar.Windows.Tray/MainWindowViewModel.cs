@@ -403,6 +403,10 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
 
     public double UsedPercent { get; }
 
+    public string UsedPercentLabel => string.Create(
+        CultureInfo.CurrentCulture,
+        $"{UsedPercent:0.#}%");
+
     public string RemainingLabel { get; }
 
     public DateTimeOffset? ResetsAt { get; }
@@ -410,6 +414,10 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
     public bool IsSession => Id.Equals("session", StringComparison.OrdinalIgnoreCase);
 
     public string CountdownLabel => FormatCountdown(ResetsAt, DateTimeOffset.Now);
+
+    public string CompactCountdownLabel => FormatCompactCountdown(
+        ResetsAt,
+        DateTimeOffset.Now);
 
     public string ResetDateLabel => ResetsAt is null
         ? string.Empty
@@ -433,6 +441,28 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
     public void RefreshTimeLabel()
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CountdownLabel)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompactCountdownLabel)));
+    }
+
+    internal static string FormatCompactCountdown(
+        DateTimeOffset? resetsAt,
+        DateTimeOffset now)
+    {
+        if (resetsAt is null)
+        {
+            return "En --:--";
+        }
+
+        TimeSpan remaining = resetsAt.Value - now;
+        if (remaining <= TimeSpan.Zero)
+        {
+            return "En 00:00";
+        }
+
+        int totalMinutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
+        int hours = totalMinutes / 60;
+        int minutes = totalMinutes % 60;
+        return $"En {hours:00}:{minutes:00}";
     }
 
     internal static string FormatCountdown(
