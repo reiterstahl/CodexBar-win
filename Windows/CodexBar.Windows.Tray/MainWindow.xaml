@@ -202,7 +202,7 @@
                             VerticalAlignment="Center"
                             FontSize="11"
                             Foreground="{StaticResource SecondaryTextBrush}"
-                            Text="Names are editable · refreshes every 5 minutes" />
+                            Text="Refreshes every 5 minutes" />
                     </StackPanel>
                     <Button
                         DockPanel.Dock="Right"
@@ -374,9 +374,9 @@
                                     CornerRadius="8">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="145" />
+                                            <ColumnDefinition Width="110" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="90" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <TextBox
@@ -388,7 +388,7 @@
                                             ToolTip="Click to rename this account" />
                                         <Grid
                                             Grid.Column="1"
-                                            Margin="8,0,8,0"
+                                            Margin="6,0"
                                             VerticalAlignment="Center">
                                             <ProgressBar
                                                 Height="7"
@@ -405,9 +405,11 @@
                                         </Grid>
                                         <TextBlock
                                             Grid.Column="2"
+                                            Margin="6,0,0,0"
                                             VerticalAlignment="Center"
-                                            FontSize="10"
+                                            FontSize="9"
                                             Foreground="{StaticResource AccentBrush}"
+                                            TextAlignment="Right"
                                             Text="{Binding SessionWindow.CountdownLabel}"
                                             TextTrimming="CharacterEllipsis" />
                                         <Button
