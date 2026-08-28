@@ -328,13 +328,9 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         Action<ProviderProfile, string> rename)
     {
         string identity = ShortIdentity(snapshot.Identity);
-        IEnumerable<RateWindow> visibleWindows = snapshot.Windows;
-        if (profile.Provider.Equals("codex", StringComparison.OrdinalIgnoreCase))
-        {
-            visibleWindows = visibleWindows.Where(window =>
-                window.Id.Equals("session", StringComparison.OrdinalIgnoreCase) ||
-                window.Id.Equals("weekly", StringComparison.OrdinalIgnoreCase));
-        }
+        IEnumerable<RateWindow> visibleWindows = snapshot.Windows.Where(window =>
+            window.Id.Equals("session", StringComparison.OrdinalIgnoreCase) ||
+            window.Id.Equals("weekly", StringComparison.OrdinalIgnoreCase));
         return new ProviderCardViewModel(
             profile,
             displayName,

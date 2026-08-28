@@ -2,7 +2,6 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Resources;
 using System.Windows.Threading;
@@ -205,6 +204,12 @@ public partial class App : System.Windows.Application
             ? $"{summary} — quota available"
             : summary;
         _notifyIcon.Text = _lastTooltipText;
+        if (!_availabilityAlertActive && _normalIcon is not null)
+        {
+            // Reapply the stable resource icon after refresh. This also repairs a stale
+            // shell-rendered frame after sleep, Explorer restart, or animation dismissal.
+            _notifyIcon.Icon = _normalIcon;
+        }
     }
 
     private void UpdateQuotaAvailability(IReadOnlyList<ProviderProfileResult> results)
@@ -219,6 +224,11 @@ public partial class App : System.Windows.Application
 
             foreach (RateWindow window in result.Snapshot.Windows)
             {
+                if (!IsPrimaryQuotaWindow(window))
+                {
+                    continue;
+                }
+
                 string key = $"{result.Profile.Key}|{window.Id}";
                 bool isAvailable = window.RemainingPercent > 0;
                 if (_hasQuotaBaseline &&
@@ -239,6 +249,12 @@ public partial class App : System.Windows.Application
         }
     }
 
+    private static bool IsPrimaryQuotaWindow(RateWindow window)
+    {
+        return window.Id.Equals("session", StringComparison.OrdinalIgnoreCase) ||
+            window.Id.Equals("weekly", StringComparison.OrdinalIgnoreCase);
+    }
+
     private void StartAvailabilityAlert()
     {
         if (_availabilityAlertActive)
@@ -254,11 +270,6 @@ public partial class App : System.Windows.Application
 
     private void DismissAvailabilityAlert()
     {
-        if (!_availabilityAlertActive)
-        {
-            return;
-        }
-
         _availabilityAlertActive = false;
         _availabilityAlertTimer?.Stop();
         if (_notifyIcon is not null && _normalIcon is not null)
@@ -333,47 +344,66 @@ public partial class App : System.Windows.Application
         StreamResourceInfo resource = GetResourceStream(resourceUri)
             ?? throw new InvalidOperationException("The CodexBar application icon is missing.");
         using Stream stream = resource.Stream;
-        using var icon = new Icon(stream);
+        using var icon = new Icon(stream, 32, 32);
         return (Icon)icon.Clone();
     }
 
     private static Icon CreateStatusIcon(Icon source, Color statusColor)
     {
+        const int iconSize = 32;
         using Bitmap sourceBitmap = source.ToBitmap();
-        using var bitmap = new Bitmap(
-            sourceBitmap.Width,
-            sourceBitmap.Height,
-            PixelFormat.Format32bppArgb);
+        using var bitmap = new Bitmap(iconSize, iconSize, PixelFormat.Format32bppArgb);
         using (Graphics graphics = Graphics.FromImage(bitmap))
         {
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            graphics.DrawImageUnscaled(sourceBitmap, 0, 0);
+            graphics.CompositingMode = CompositingMode.SourceOver;
+            graphics.CompositingQuality = CompositingQuality.HighQuality;
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            graphics.Clear(Color.Transparent);
+            graphics.DrawImage(sourceBitmap, new Rectangle(0, 0, iconSize, iconSize));
 
-            int diameter = Math.Max(6, bitmap.Width / 3);
-            int margin = Math.Max(1, bitmap.Width / 16);
+            const int diameter = 11;
+            const int margin = 1;
             var badge = new Rectangle(
                 bitmap.Width - diameter - margin,
                 bitmap.Height - diameter - margin,
                 diameter,
                 diameter);
-            using var outline = new Pen(Color.FromArgb(230, 16, 18, 22), Math.Max(1, bitmap.Width / 16));
+            using var outline = new Pen(Color.FromArgb(255, 11, 13, 16), 2);
             using var fill = new SolidBrush(statusColor);
             graphics.FillEllipse(fill, badge);
             graphics.DrawEllipse(outline, badge);
         }
 
-        IntPtr handle = bitmap.GetHicon();
-        try
-        {
-            using Icon icon = Icon.FromHandle(handle);
-            return (Icon)icon.Clone();
-        }
-        finally
-        {
-            DestroyIcon(handle);
-        }
+        return CreatePngBackedIcon(bitmap);
     }
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool DestroyIcon(IntPtr handle);
+    private static Icon CreatePngBackedIcon(Bitmap bitmap)
+    {
+        using var png = new MemoryStream();
+        bitmap.Save(png, ImageFormat.Png);
+        byte[] pngBytes = png.ToArray();
+
+        using var ico = new MemoryStream();
+        using (var writer = new BinaryWriter(ico, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            writer.Write((ushort)0); // Reserved.
+            writer.Write((ushort)1); // ICO image type.
+            writer.Write((ushort)1); // One image.
+            writer.Write((byte)bitmap.Width);
+            writer.Write((byte)bitmap.Height);
+            writer.Write((byte)0); // No palette.
+            writer.Write((byte)0); // Reserved.
+            writer.Write((ushort)1); // Color planes.
+            writer.Write((ushort)32); // Bits per pixel.
+            writer.Write((uint)pngBytes.Length);
+            writer.Write((uint)22); // ICO header and directory size.
+            writer.Write(pngBytes);
+        }
+
+        ico.Position = 0;
+        using var icon = new Icon(ico);
+        return (Icon)icon.Clone();
+    }
 }

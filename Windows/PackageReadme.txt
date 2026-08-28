@@ -112,3 +112,5 @@ The card layout is condensed so the normal four-account setup requires no
 vertical scrollbar. Reset timing is shown as a live countdown, prioritizing
 the short session in Summary view, with the full localized reset date beneath
 each quota.
+Claude and Codex cards show only Session and Weekly; redundant model-specific
+weekly quotas are omitted.

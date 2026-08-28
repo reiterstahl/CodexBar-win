@@ -185,8 +185,9 @@ producir HTTP 400.
 
 La identidad visible de una cuenta con correo muestra únicamente la parte
 anterior a `@`. Summary usa una vista pequeña con solo la barra gráfica de la
-sesión y su cuenta regresiva. Para Codex, las vistas muestran únicamente
-**Session** y **Weekly**; se omiten cuotas de modelo adicionales.
+sesión y su cuenta regresiva. Para Claude y Codex, las vistas muestran
+únicamente **Session** y **Weekly**; se omiten cuotas de modelo que duplican la
+información semanal.
 
 Si una cuota estaba agotada y vuelve a estar disponible, el icono de la bandeja
 alterna un indicador amarillo/verde. Haz doble clic sobre el icono para
