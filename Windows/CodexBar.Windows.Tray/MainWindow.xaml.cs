@@ -4,21 +4,25 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Threading;
 
 namespace CodexBar.Windows.Tray;
 
 public partial class MainWindow : Window
 {
     private const int WmSetIcon = 0x0080;
+    private const int TaskbarIconRepairAttempts = 3;
     private static readonly IntPtr IconSmall = IntPtr.Zero;
     private static readonly IntPtr IconBig = new(1);
 
     private readonly AppSettingsStore _settingsStore;
+    private readonly DispatcherTimer _taskbarIconRepairTimer;
     private System.Drawing.Icon? _taskbarSmallIcon;
     private System.Drawing.Icon? _taskbarLargeIcon;
     private MemoryStream? _taskbarSmallIconStream;
     private MemoryStream? _taskbarLargeIconStream;
     private System.Windows.Point? _compactDragOrigin;
+    private int _taskbarIconRepairAttemptsRemaining;
     private bool _allowClose;
     private bool _positionInitialized;
 
@@ -29,10 +33,17 @@ public partial class MainWindow : Window
         ViewModel = new MainWindowViewModel(settingsStore);
         DataContext = ViewModel;
         Topmost = ViewModel.IsAlwaysOnTop;
+        _taskbarIconRepairTimer = new DispatcherTimer(DispatcherPriority.ApplicationIdle)
+        {
+            Interval = TimeSpan.FromMilliseconds(175),
+        };
+        _taskbarIconRepairTimer.Tick += TaskbarIconRepairTimer_Tick;
         ApplyViewMode();
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         Deactivated += (_, _) => SaveWindowPosition();
         SourceInitialized += (_, _) => ApplyTaskbarIcons();
+        ContentRendered += (_, _) => ScheduleTaskbarIconRepair();
+        Activated += (_, _) => ScheduleTaskbarIconRepair();
         StateChanged += (_, _) => ApplyTaskbarIcons();
     }
 
@@ -51,6 +62,7 @@ public partial class MainWindow : Window
         ApplyTaskbarIcons();
         EnsureWindowPosition();
         Activate();
+        ScheduleTaskbarIconRepair();
     }
 
     public void CloseForExit()
@@ -74,6 +86,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _taskbarIconRepairTimer.Stop();
         _taskbarSmallIcon?.Dispose();
         _taskbarLargeIcon?.Dispose();
         _taskbarSmallIconStream?.Dispose();
@@ -317,6 +330,24 @@ public partial class MainWindow : Window
         if (_taskbarLargeIcon is not null)
         {
             SendMessage(windowHandle, WmSetIcon, IconBig, _taskbarLargeIcon.Handle);
+        }
+    }
+
+    private void ScheduleTaskbarIconRepair()
+    {
+        ApplyTaskbarIcons();
+        _taskbarIconRepairAttemptsRemaining = TaskbarIconRepairAttempts;
+        _taskbarIconRepairTimer.Stop();
+        _taskbarIconRepairTimer.Start();
+    }
+
+    private void TaskbarIconRepairTimer_Tick(object? sender, EventArgs e)
+    {
+        ApplyTaskbarIcons();
+        _taskbarIconRepairAttemptsRemaining--;
+        if (_taskbarIconRepairAttemptsRemaining <= 0)
+        {
+            _taskbarIconRepairTimer.Stop();
         }
     }
 
