@@ -267,10 +267,9 @@
                                 <Border
                                     Margin="0,0,0,6"
                                     Padding="10,8"
-                                    Background="{StaticResource SurfaceBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="10">
+                                    CornerRadius="10"
+                                    Style="{StaticResource ProviderCardBorderStyle}">
                                     <StackPanel>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -401,10 +400,9 @@
                                 <Border
                                     Margin="0,2"
                                     Padding="9,6"
-                                    Background="{StaticResource SurfaceBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="8">
+                                    CornerRadius="8"
+                                    Style="{StaticResource ProviderCardBorderStyle}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="110" />

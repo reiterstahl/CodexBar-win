@@ -105,9 +105,11 @@ account's session graph and reset countdown. The diamond button
 toggles always-on-top. Minimize sends the window to the taskbar; close hides
 it to the notification area without exiting CodexBar. Losing focus does not hide or reposition the
 window; the last position selected by dragging the header is restored later.
-When a quota changes from exhausted to available, the notification-area icon
-alternates a yellow/green status badge. Double-click the tray icon to dismiss
-the alert; a single click continues to open or hide the window.
+When Session or Weekly reaches 0% available, the account card gets a subtle red
+background and moves below accounts that still have quota. When both quotas
+become available again, the card returns to the upper section and softly
+flashes green. Click that card to dismiss its alert. The notification-area icon
+stays unchanged and no longer adds a separate green status badge.
 The card layout is condensed so the normal four-account setup requires no
 vertical scrollbar. Reset timing is shown as a live countdown, prioritizing
 the short session in Summary view, with the full localized reset date beneath

@@ -12,8 +12,27 @@
         <SolidColorBrush x:Key="SurfaceBrush" Color="#14171C" />
         <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#1B1F25" />
         <SolidColorBrush x:Key="BorderBrush" Color="#30343B" />
+        <SolidColorBrush x:Key="ExhaustedSurfaceBrush" Color="#291719" />
+        <SolidColorBrush x:Key="ExhaustedBorderBrush" Color="#71343B" />
+        <SolidColorBrush x:Key="RecoverySurfaceBrush" Color="#173322" />
+        <SolidColorBrush x:Key="RecoveryBorderBrush" Color="#39D270" />
         <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F4F4E8" />
         <SolidColorBrush x:Key="SecondaryTextBrush" Color="#A9ADB4" />
+
+        <Style x:Key="ProviderCardBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsExhausted}" Value="True">
+                    <Setter Property="Background" Value="{StaticResource ExhaustedSurfaceBrush}" />
+                    <Setter Property="BorderBrush" Value="{StaticResource ExhaustedBorderBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsRecoveryPulseVisible}" Value="True">
+                    <Setter Property="Background" Value="{StaticResource RecoverySurfaceBrush}" />
+                    <Setter Property="BorderBrush" Value="{StaticResource RecoveryBorderBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
 
         <Style TargetType="Button">
             <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />

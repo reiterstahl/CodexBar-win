@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private static readonly IntPtr IconBig = new(1);
 
     private readonly AppSettingsStore _settingsStore;
+    private readonly DispatcherTimer _recoveryAlertTimer;
     private readonly DispatcherTimer _taskbarIconRepairTimer;
     private System.Drawing.Icon? _taskbarSmallIcon;
     private System.Drawing.Icon? _taskbarLargeIcon;
@@ -38,6 +39,11 @@ public partial class MainWindow : Window
             Interval = TimeSpan.FromMilliseconds(175),
         };
         _taskbarIconRepairTimer.Tick += TaskbarIconRepairTimer_Tick;
+        _recoveryAlertTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(700),
+        };
+        _recoveryAlertTimer.Tick += (_, _) => ViewModel.ToggleRecoveryPulse();
         ApplyViewMode();
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         Deactivated += (_, _) => SaveWindowPosition();
@@ -86,6 +92,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _recoveryAlertTimer.Stop();
         _taskbarIconRepairTimer.Stop();
         _taskbarSmallIcon?.Dispose();
         _taskbarLargeIcon?.Dispose();
@@ -130,7 +137,13 @@ public partial class MainWindow : Window
         object sender,
         MouseButtonEventArgs e)
     {
-        if (!ViewModel.IsCompact || e.ChangedButton != MouseButton.Left)
+        if (e.ChangedButton != MouseButton.Left)
+        {
+            return;
+        }
+
+        DismissRecoveryAlertForSource(e.OriginalSource);
+        if (!ViewModel.IsCompact)
         {
             return;
         }
@@ -199,6 +212,20 @@ public partial class MainWindow : Window
         }
     }
 
+    private void DismissRecoveryAlertForSource(object source)
+    {
+        ProviderCardViewModel? provider = source switch
+        {
+            FrameworkElement element => element.DataContext as ProviderCardViewModel,
+            FrameworkContentElement element => element.DataContext as ProviderCardViewModel,
+            _ => null,
+        };
+        if (provider is not null)
+        {
+            ViewModel.DismissRecoveryAlert(provider);
+        }
+    }
+
     private void CompactButton_Click(object sender, RoutedEventArgs e)
     {
         ViewModel.ToggleCompact();
@@ -246,6 +273,22 @@ public partial class MainWindow : Window
         else if (e.PropertyName == nameof(MainWindowViewModel.IsAlwaysOnTop))
         {
             Topmost = ViewModel.IsAlwaysOnTop;
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.HasRecoveryAlerts))
+        {
+            SyncRecoveryAlertTimer();
+        }
+    }
+
+    private void SyncRecoveryAlertTimer()
+    {
+        if (ViewModel.HasRecoveryAlerts)
+        {
+            _recoveryAlertTimer.Start();
+        }
+        else
+        {
+            _recoveryAlertTimer.Stop();
         }
     }
 

@@ -12,10 +12,16 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public const double MaximumUiScale = 1.6;
 
     private readonly AppSettingsStore _settingsStore;
+    private readonly Dictionary<string, bool> _accountAvailability =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _recoveryAlerts =
+        new(StringComparer.OrdinalIgnoreCase);
+    private bool _hasQuotaBaseline;
     private bool _isAlwaysOnTop;
     private bool _isCompact;
     private bool _isRefreshing;
     private bool _isSettingsOpen;
+    private bool _recoveryPulseOn = true;
     private string _status = "Starting…";
     private double _uiScale;
 
@@ -38,6 +44,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     }
 
     public bool CanRefresh => !_isRefreshing;
+
+    public bool HasRecoveryAlerts => _recoveryAlerts.Count > 0;
 
     public bool IsAlwaysOnTop
     {
@@ -146,16 +154,48 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void Apply(IReadOnlyList<ProviderProfileResult> results)
     {
-        Providers.Clear();
+        var cards = new List<ProviderCardViewModel>(results.Count);
+        var observedProfileKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (ProviderProfileResult result in results)
         {
+            string profileKey = result.Profile.Key;
+            observedProfileKeys.Add(profileKey);
+            bool isAvailable = result.Snapshot is not null &&
+                HasUsableQuota(result.Snapshot);
+
+            if (result.Snapshot is not null)
+            {
+                if (_hasQuotaBaseline &&
+                    isAvailable &&
+                    _accountAvailability.TryGetValue(profileKey, out bool wasAvailable) &&
+                    !wasAvailable)
+                {
+                    _recoveryAlerts.Add(profileKey);
+                    _recoveryPulseOn = true;
+                }
+
+                if (!isAvailable)
+                {
+                    _recoveryAlerts.Remove(profileKey);
+                }
+                _accountAvailability[profileKey] = isAvailable;
+            }
+            else
+            {
+                _recoveryAlerts.Remove(profileKey);
+            }
+
             string displayName = _settingsStore.DisplayName(result.Profile);
-            Providers.Add(result.Snapshot is not null
+            bool recoveryAlertActive = _recoveryAlerts.Contains(profileKey);
+            cards.Add(result.Snapshot is not null
                 ? ProviderCardViewModel.FromSnapshot(
                     result.Profile,
                     displayName,
                     result.Snapshot,
+                    isExhausted: !isAvailable,
+                    recoveryAlertActive,
+                    recoveryPulseVisible: recoveryAlertActive && _recoveryPulseOn,
                     RenameProfile)
                 : ProviderCardViewModel.FromFailure(
                     result.Profile,
@@ -163,6 +203,24 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                     result.Failure,
                     RenameProfile));
         }
+
+        foreach (string staleProfileKey in _accountAvailability.Keys
+            .Where(key => !observedProfileKeys.Contains(key))
+            .ToArray())
+        {
+            _accountAvailability.Remove(staleProfileKey);
+            _recoveryAlerts.Remove(staleProfileKey);
+        }
+
+        Providers.Clear();
+        foreach (ProviderCardViewModel card in cards
+            .OrderBy(card => card.HasError ? 2 : card.IsExhausted ? 1 : 0))
+        {
+            Providers.Add(card);
+        }
+
+        _hasQuotaBaseline = true;
+        OnPropertyChanged(nameof(HasRecoveryAlerts));
 
         DateTimeOffset generatedAt = results.Count == 0
             ? DateTimeOffset.Now
@@ -188,9 +246,46 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    public void ToggleRecoveryPulse()
+    {
+        if (!HasRecoveryAlerts)
+        {
+            return;
+        }
+
+        _recoveryPulseOn = !_recoveryPulseOn;
+        foreach (ProviderCardViewModel provider in Providers)
+        {
+            provider.SetRecoveryPulse(
+                _recoveryAlerts.Contains(provider.Profile.Key) && _recoveryPulseOn);
+        }
+    }
+
+    public void DismissRecoveryAlert(ProviderCardViewModel provider)
+    {
+        if (!_recoveryAlerts.Remove(provider.Profile.Key))
+        {
+            return;
+        }
+
+        provider.SetRecoveryAlert(active: false, pulseVisible: false);
+        OnPropertyChanged(nameof(HasRecoveryAlerts));
+    }
+
     private void RenameProfile(ProviderProfile profile, string name)
     {
         _settingsStore.SetDisplayName(profile, name);
+    }
+
+    private static bool HasUsableQuota(ProviderSnapshot snapshot)
+    {
+        RateWindow[] primaryWindows = snapshot.Windows
+            .Where(window =>
+                window.Id.Equals("session", StringComparison.OrdinalIgnoreCase) ||
+                window.Id.Equals("weekly", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        return primaryWindows.Length > 0 &&
+            primaryWindows.All(window => window.RemainingPercent > 0);
     }
 
     private bool SetField<T>(
@@ -218,6 +313,8 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
 {
     private readonly Action<ProviderProfile, string> _rename;
     private string _displayName;
+    private bool _isRecoveryAlertActive;
+    private bool _isRecoveryPulseVisible;
 
     private ProviderCardViewModel(
         ProviderProfile profile,
@@ -225,6 +322,9 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         string identity,
         string errorMessage,
         bool requiresLogin,
+        bool isExhausted,
+        bool recoveryAlertActive,
+        bool recoveryPulseVisible,
         IReadOnlyList<RateWindowViewModel> windows,
         Action<ProviderProfile, string> rename)
     {
@@ -233,6 +333,9 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         Identity = identity;
         ErrorMessage = errorMessage;
         RequiresLogin = requiresLogin;
+        IsExhausted = isExhausted;
+        _isRecoveryAlertActive = recoveryAlertActive;
+        _isRecoveryPulseVisible = recoveryPulseVisible;
         Windows = windows;
         _rename = rename;
     }
@@ -265,6 +368,40 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
     public bool HasError => ErrorMessage.Length > 0;
 
     public bool RequiresLogin { get; }
+
+    public bool IsExhausted { get; }
+
+    public bool IsRecoveryAlertActive
+    {
+        get => _isRecoveryAlertActive;
+        private set
+        {
+            if (_isRecoveryAlertActive == value)
+            {
+                return;
+            }
+            _isRecoveryAlertActive = value;
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(nameof(IsRecoveryAlertActive)));
+        }
+    }
+
+    public bool IsRecoveryPulseVisible
+    {
+        get => _isRecoveryPulseVisible;
+        private set
+        {
+            if (_isRecoveryPulseVisible == value)
+            {
+                return;
+            }
+            _isRecoveryPulseVisible = value;
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(nameof(IsRecoveryPulseVisible)));
+        }
+    }
 
     public IReadOnlyList<RateWindowViewModel> Windows { get; }
 
@@ -321,6 +458,17 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompactSummary)));
     }
 
+    public void SetRecoveryPulse(bool visible)
+    {
+        IsRecoveryPulseVisible = IsRecoveryAlertActive && visible;
+    }
+
+    public void SetRecoveryAlert(bool active, bool pulseVisible)
+    {
+        IsRecoveryAlertActive = active;
+        IsRecoveryPulseVisible = active && pulseVisible;
+    }
+
     private static string PowerShellLiteral(string value)
     {
         return $"'{value.Replace("'", "''")}'";
@@ -330,6 +478,9 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         ProviderProfile profile,
         string displayName,
         ProviderSnapshot snapshot,
+        bool isExhausted,
+        bool recoveryAlertActive,
+        bool recoveryPulseVisible,
         Action<ProviderProfile, string> rename)
     {
         string identity = ShortIdentity(snapshot.Identity);
@@ -342,6 +493,9 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
             identity,
             string.Empty,
             false,
+            isExhausted,
+            recoveryAlertActive,
+            recoveryPulseVisible,
             visibleWindows.Select(RateWindowViewModel.FromSnapshot).ToArray(),
             rename);
     }
@@ -364,6 +518,9 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
             string.Empty,
             message,
             requiresLogin,
+            false,
+            false,
+            false,
             [],
             rename);
     }

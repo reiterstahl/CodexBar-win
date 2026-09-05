@@ -189,9 +189,12 @@ sesión y su cuenta regresiva. Para Claude y Codex, las vistas muestran
 únicamente **Session** y **Weekly**; se omiten cuotas de modelo que duplican la
 información semanal.
 
-Si una cuota estaba agotada y vuelve a estar disponible, el icono de la bandeja
-alterna un indicador amarillo/verde. Haz doble clic sobre el icono para
-descartar la alerta; un clic simple continúa mostrando u ocultando la ventana.
+Si **Session** o **Weekly** llega a 0% disponible, la tarjeta usa un fondo rojo
+tenue y se mueve debajo de las cuentas que todavía tienen cuota. Cuando ambas
+cuotas vuelven a estar disponibles, la tarjeta regresa a la sección superior y
+su fondo parpadea suavemente en verde; haz clic sobre esa tarjeta para descartar
+la alerta. El icono del área de notificación permanece normal y sin indicador
+verde adicional.
 
 Cuando el token de acceso de Claude Code vence, CodexBar renueva la sesión de
 forma automática con el refresh token ya guardado por Claude Code. No abre el
