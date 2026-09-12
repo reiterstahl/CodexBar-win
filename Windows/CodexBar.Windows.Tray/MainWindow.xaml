@@ -276,6 +276,7 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <TextBox
                                                 FontSize="14"
@@ -283,8 +284,37 @@
                                                 MaxLength="40"
                                                 Text="{Binding DisplayName, UpdateSourceTrigger=LostFocus}"
                                                 ToolTip="Click to rename this account" />
-                                            <Button
+                                            <TextBlock
                                                 Grid.Column="1"
+                                                Margin="12,0,2,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="15"
+                                                FontWeight="Bold"
+                                                Text="{Binding ExhaustedWindow.AvailabilityCountdownLabel}"
+                                                ToolTip="{Binding ExhaustedWindow.ResetDateLabel}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter
+                                                            Property="Foreground"
+                                                            Value="{StaticResource ResetWaitingBrush}" />
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <Trigger Property="Text" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </Trigger>
+                                                            <DataTrigger
+                                                                Binding="{Binding ExhaustedWindow.IsResetSoon}"
+                                                                Value="True">
+                                                                <Setter
+                                                                    Property="Foreground"
+                                                                    Value="{StaticResource ResetSoonBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <Button
+                                                Grid.Column="2"
                                                 Height="24"
                                                 Margin="8,0,0,0"
                                                 Padding="7,2"
@@ -293,7 +323,7 @@
                                                 ToolTip="Copy the login command for this account"
                                                 Visibility="{Binding RequiresLogin, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                             <Border
-                                                Grid.Column="2"
+                                                Grid.Column="3"
                                                 Margin="6,0,0,0"
                                                 Padding="7,2"
                                                 Background="#22262C"
@@ -364,7 +394,7 @@
                                                                 FontSize="10"
                                                                 FontWeight="SemiBold"
                                                                 Foreground="{StaticResource AccentBrush}"
-                                                                Text="{Binding CountdownLabel}" />
+                                                                Text="{Binding DetailStatusLabel}" />
                                                             <TextBlock
                                                                 DockPanel.Dock="Right"
                                                                 Margin="8,0,0,0"

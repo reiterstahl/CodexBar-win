@@ -109,7 +109,10 @@ When Session or Weekly reaches 0% available, the account card gets a subtle red
 background and moves below accounts that still have quota. When both quotas
 become available again, the card returns to the upper section and softly
 flashes green. Click that card to dismiss its alert. The notification-area icon
-stays unchanged and no longer adds a separate green status badge.
+stays unchanged and no longer adds a separate green status badge. An exhausted
+card prominently shows "Available in ..." in amber, changing to green when the
+reset is 30 minutes away or less. Its quota row says "Limit reached" and keeps
+the complete reset date instead of repeating the same countdown.
 The card layout is condensed so the normal four-account setup requires no
 vertical scrollbar. Reset timing is shown as a live countdown, prioritizing
 the short session in Summary view, with the full localized reset date beneath

@@ -194,7 +194,10 @@ tenue y se mueve debajo de las cuentas que todavía tienen cuota. Cuando ambas
 cuotas vuelven a estar disponibles, la tarjeta regresa a la sección superior y
 su fondo parpadea suavemente en verde; haz clic sobre esa tarjeta para descartar
 la alerta. El icono del área de notificación permanece normal y sin indicador
-verde adicional.
+verde adicional. Mientras está agotada, el encabezado de la tarjeta destaca el
+tiempo que falta como **Disponible en …**: aparece en ámbar cuando faltan 31
+minutos o más y cambia a verde cuando quedan 30 minutos o menos. La fila de la
+cuota indica **Límite alcanzado** y conserva la fecha completa de renovación.
 
 Cuando el token de acceso de Claude Code vence, CodexBar renueva la sesión de
 forma automática con el refresh token ya guardado por Claude Code. No abre el

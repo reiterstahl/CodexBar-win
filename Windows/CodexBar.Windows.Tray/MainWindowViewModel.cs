@@ -408,6 +408,11 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
     public RateWindowViewModel? SessionWindow =>
         Windows.FirstOrDefault(window => window.IsSession);
 
+    public RateWindowViewModel? ExhaustedWindow => Windows
+        .Where(window => window.IsExhausted)
+        .OrderBy(window => window.ResetsAt ?? DateTimeOffset.MaxValue)
+        .FirstOrDefault();
+
     public string LoginCommand => Profile.Provider switch
     {
         "codex" => string.Join(
@@ -548,12 +553,14 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
         string label,
         double usedPercent,
         string remainingLabel,
+        bool isExhausted,
         DateTimeOffset? resetsAt)
     {
         Id = id;
         Label = label;
         UsedPercent = usedPercent;
         RemainingLabel = remainingLabel;
+        IsExhausted = isExhausted;
         ResetsAt = resetsAt;
     }
 
@@ -571,11 +578,37 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
 
     public string RemainingLabel { get; }
 
+    public bool IsExhausted { get; }
+
     public DateTimeOffset? ResetsAt { get; }
 
     public bool IsSession => Id.Equals("session", StringComparison.OrdinalIgnoreCase);
 
     public string CountdownLabel => FormatCountdown(ResetsAt, DateTimeOffset.Now);
+
+    public string AvailabilityCountdownLabel
+    {
+        get
+        {
+            string countdown = CountdownLabel;
+            const string standardPrefix = "Renueva en ";
+            return countdown.StartsWith(standardPrefix, StringComparison.Ordinal)
+                ? $"Disponible en {countdown[standardPrefix.Length..]}"
+                : countdown switch
+                {
+                    "Renovando ahora" => "Disponible ahora",
+                    "Renovación no disponible" => "Renovación pendiente",
+                    _ => countdown,
+                };
+        }
+    }
+
+    public string DetailStatusLabel => IsExhausted
+        ? "Límite alcanzado"
+        : CountdownLabel;
+
+    public bool IsResetSoon => ResetsAt is not null &&
+        ResetsAt.Value - DateTimeOffset.Now <= TimeSpan.FromMinutes(30);
 
     public string CompactCountdownLabel => FormatCompactCountdown(
         ResetsAt,
@@ -597,12 +630,18 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
             window.Label,
             window.UsedPercent,
             remaining,
+            window.RemainingPercent <= 0,
             window.ResetsAt);
     }
 
     public void RefreshTimeLabel()
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CountdownLabel)));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(AvailabilityCountdownLabel)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DetailStatusLabel)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsResetSoon)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompactCountdownLabel)));
     }
 

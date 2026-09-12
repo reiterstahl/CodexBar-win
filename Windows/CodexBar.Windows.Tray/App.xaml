@@ -16,6 +16,8 @@
         <SolidColorBrush x:Key="ExhaustedBorderBrush" Color="#71343B" />
         <SolidColorBrush x:Key="RecoverySurfaceBrush" Color="#173322" />
         <SolidColorBrush x:Key="RecoveryBorderBrush" Color="#39D270" />
+        <SolidColorBrush x:Key="ResetSoonBrush" Color="#5EE58A" />
+        <SolidColorBrush x:Key="ResetWaitingBrush" Color="#FFB84D" />
         <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F4F4E8" />
         <SolidColorBrush x:Key="SecondaryTextBrush" Color="#A9ADB4" />
 
