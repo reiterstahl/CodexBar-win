@@ -10,22 +10,30 @@ namespace CodexBar.Windows.Tray;
 
 public partial class MainWindow : Window
 {
+    private const int GclpHIcon = -14;
+    private const int GclpHIconSmall = -34;
     private const int WmSetIcon = 0x0080;
-    private const int TaskbarIconRepairAttempts = 3;
+    private const uint SwpNoSize = 0x0001;
+    private const uint SwpNoMove = 0x0002;
+    private const uint SwpNoZOrder = 0x0004;
+    private const uint SwpNoActivate = 0x0010;
+    private const uint SwpFrameChanged = 0x0020;
+    private const uint RedrawInvalidate = 0x0001;
+    private const uint RedrawUpdateNow = 0x0100;
+    private const uint RedrawFrame = 0x0400;
     private static readonly IntPtr IconSmall = IntPtr.Zero;
     private static readonly IntPtr IconBig = new(1);
 
     private readonly AppSettingsStore _settingsStore;
     private readonly DispatcherTimer _recoveryAlertTimer;
-    private readonly DispatcherTimer _taskbarIconRepairTimer;
     private System.Drawing.Icon? _taskbarSmallIcon;
     private System.Drawing.Icon? _taskbarLargeIcon;
     private MemoryStream? _taskbarSmallIconStream;
     private MemoryStream? _taskbarLargeIconStream;
     private System.Windows.Point? _compactDragOrigin;
-    private int _taskbarIconRepairAttemptsRemaining;
     private bool _allowClose;
     private bool _positionInitialized;
+    private bool _taskbarIconRefreshQueued;
 
     public MainWindow(AppSettingsStore settingsStore)
     {
@@ -34,11 +42,6 @@ public partial class MainWindow : Window
         ViewModel = new MainWindowViewModel(settingsStore);
         DataContext = ViewModel;
         Topmost = ViewModel.IsAlwaysOnTop;
-        _taskbarIconRepairTimer = new DispatcherTimer(DispatcherPriority.ApplicationIdle)
-        {
-            Interval = TimeSpan.FromMilliseconds(175),
-        };
-        _taskbarIconRepairTimer.Tick += TaskbarIconRepairTimer_Tick;
         _recoveryAlertTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
             Interval = TimeSpan.FromMilliseconds(700),
@@ -47,10 +50,15 @@ public partial class MainWindow : Window
         ApplyViewMode();
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         Deactivated += (_, _) => SaveWindowPosition();
-        SourceInitialized += (_, _) => ApplyTaskbarIcons();
-        ContentRendered += (_, _) => ScheduleTaskbarIconRepair();
-        Activated += (_, _) => ScheduleTaskbarIconRepair();
-        StateChanged += (_, _) => ApplyTaskbarIcons();
+        SourceInitialized += (_, _) => ApplyTaskbarIcons(refreshNativeFrame: false);
+        ContentRendered += (_, _) => QueueTaskbarIconRefresh();
+        StateChanged += (_, _) =>
+        {
+            if (WindowState == WindowState.Normal)
+            {
+                QueueTaskbarIconRefresh();
+            }
+        };
     }
 
     public event EventHandler? RefreshRequested;
@@ -65,10 +73,10 @@ public partial class MainWindow : Window
         }
         Show();
         UpdateLayout();
-        ApplyTaskbarIcons();
+        ApplyTaskbarIcons(refreshNativeFrame: false);
         EnsureWindowPosition();
         Activate();
-        ScheduleTaskbarIconRepair();
+        QueueTaskbarIconRefresh();
     }
 
     public void CloseForExit()
@@ -93,7 +101,6 @@ public partial class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _recoveryAlertTimer.Stop();
-        _taskbarIconRepairTimer.Stop();
         _taskbarSmallIcon?.Dispose();
         _taskbarLargeIcon?.Dispose();
         _taskbarSmallIconStream?.Dispose();
@@ -356,7 +363,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ApplyTaskbarIcons()
+    private void ApplyTaskbarIcons(bool refreshNativeFrame)
     {
         IntPtr windowHandle = new WindowInteropHelper(this).Handle;
         if (windowHandle == IntPtr.Zero)
@@ -367,31 +374,52 @@ public partial class MainWindow : Window
         EnsureTaskbarIcons();
         if (_taskbarSmallIcon is not null)
         {
+            SetClassLongPtr(windowHandle, GclpHIconSmall, _taskbarSmallIcon.Handle);
             SendMessage(windowHandle, WmSetIcon, IconSmall, _taskbarSmallIcon.Handle);
         }
 
         if (_taskbarLargeIcon is not null)
         {
+            SetClassLongPtr(windowHandle, GclpHIcon, _taskbarLargeIcon.Handle);
             SendMessage(windowHandle, WmSetIcon, IconBig, _taskbarLargeIcon.Handle);
         }
-    }
 
-    private void ScheduleTaskbarIconRepair()
-    {
-        ApplyTaskbarIcons();
-        _taskbarIconRepairAttemptsRemaining = TaskbarIconRepairAttempts;
-        _taskbarIconRepairTimer.Stop();
-        _taskbarIconRepairTimer.Start();
-    }
-
-    private void TaskbarIconRepairTimer_Tick(object? sender, EventArgs e)
-    {
-        ApplyTaskbarIcons();
-        _taskbarIconRepairAttemptsRemaining--;
-        if (_taskbarIconRepairAttemptsRemaining <= 0)
+        if (refreshNativeFrame)
         {
-            _taskbarIconRepairTimer.Stop();
+            // Explorer can retain WPF's provisional icon until it sees a native frame
+            // update. This reproduces the refresh caused by moving the window without
+            // changing its position, dimensions, activation, or Z order.
+            SetWindowPos(
+                windowHandle,
+                IntPtr.Zero,
+                0,
+                0,
+                0,
+                0,
+                SwpNoMove | SwpNoSize | SwpNoZOrder | SwpNoActivate | SwpFrameChanged);
+            RedrawWindow(
+                windowHandle,
+                IntPtr.Zero,
+                IntPtr.Zero,
+                RedrawInvalidate | RedrawUpdateNow | RedrawFrame);
         }
+    }
+
+    private void QueueTaskbarIconRefresh()
+    {
+        if (_taskbarIconRefreshQueued)
+        {
+            return;
+        }
+
+        _taskbarIconRefreshQueued = true;
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.ApplicationIdle,
+            new Action(() =>
+            {
+                _taskbarIconRefreshQueued = false;
+                ApplyTaskbarIcons(refreshNativeFrame: true);
+            }));
     }
 
     private void EnsureTaskbarIcons()
@@ -441,4 +469,29 @@ public partial class MainWindow : Window
         int message,
         IntPtr wordParameter,
         IntPtr longParameter);
+
+    [DllImport("user32.dll", EntryPoint = "SetClassLongPtrW")]
+    private static extern IntPtr SetClassLongPtr(
+        IntPtr windowHandle,
+        int index,
+        IntPtr newValue);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(
+        IntPtr windowHandle,
+        IntPtr insertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool RedrawWindow(
+        IntPtr windowHandle,
+        IntPtr updateRectangle,
+        IntPtr updateRegion,
+        uint flags);
 }
