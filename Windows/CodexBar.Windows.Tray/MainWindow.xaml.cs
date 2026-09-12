@@ -50,7 +50,6 @@ public partial class MainWindow : Window
         ApplyViewMode();
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         Deactivated += (_, _) => SaveWindowPosition();
-        SourceInitialized += (_, _) => ApplyTaskbarIcons(refreshNativeFrame: false);
         ContentRendered += (_, _) => QueueTaskbarIconRefresh();
         StateChanged += (_, _) =>
         {
@@ -83,6 +82,15 @@ public partial class MainWindow : Window
     {
         _allowClose = true;
         Close();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        // Windows 11 can ask for the taskbar icon while WPF is still completing
+        // source initialization. Set the HWND and window-class icons before WPF
+        // raises SourceInitialized so Explorer never observes the generic icon.
+        ApplyTaskbarIcons(refreshNativeFrame: false);
+        base.OnSourceInitialized(e);
     }
 
     protected override void OnClosing(CancelEventArgs e)

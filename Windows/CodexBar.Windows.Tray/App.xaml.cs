@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.IO;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Resources;
 using System.Windows.Threading;
 using CodexBar.EngineClient;
@@ -25,7 +26,10 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
 
         _settingsStore = new AppSettingsStore();
+        _normalIcon = LoadApplicationIcon();
         _window = new MainWindow(_settingsStore);
+        MainWindow = _window;
+        _ = new WindowInteropHelper(_window).EnsureHandle();
         _window.RefreshRequested += (_, _) => _ = RefreshAsync();
 
         var menu = new Forms.ContextMenuStrip();
@@ -34,7 +38,6 @@ public partial class App : System.Windows.Application
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => ExitApplication());
 
-        _normalIcon = LoadApplicationIcon();
         _notifyIcon = new Forms.NotifyIcon
         {
             ContextMenuStrip = menu,
