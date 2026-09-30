@@ -7,6 +7,8 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\CodexBar.ico</ApplicationIcon>
+    <!-- The UI is Spanish; skip the other localized WPF/WinForms runtime resources. -->
+    <SatelliteResourceLanguages>es</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
