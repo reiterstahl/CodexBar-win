@@ -24,17 +24,17 @@ window, when it resets, and which account still has quota. Works with several ac
 [![License: MIT](https://img.shields.io/badge/license-MIT-6e5aff?style=flat-square)](LICENSE)
 
 <p align="center">
-  <img src="docs/images/tarjetas-en.png" width="400" alt="Cards view with the Grafito theme: four accounts with session and weekly bars, pace marker, and one exhausted account">
+  <img src="docs/images/tarjetas-en.png" width="400" alt="Cards view with the Graphite theme: four accounts with session and weekly bars, pace marker, and one exhausted account">
   &nbsp;
   <img src="docs/images/personalizar-en.png" width="400" alt="Customize window with themes, accent colors, chart types, view, density, size, and behavior options">
 </p>
 <p align="center">
-  <img src="docs/images/resumen-en.png" width="620" alt="Summary view with the Medianoche theme and ring charts colored by quota level">
+  <img src="docs/images/resumen-en.png" width="620" alt="Summary view with the Midnight theme and ring charts colored by quota level">
 </p>
 <p align="center">
-  <img src="docs/images/mini-en.png" width="380" alt="Mini view with the Claro theme and gauges colored per provider">
+  <img src="docs/images/mini-en.png" width="380" alt="Mini view with the Light theme and gauges colored per provider">
 </p>
-<p align="center"><sub>Cards and Customize (Grafito, bars) · Summary (Medianoche, rings by level) · Mini (Claro, gauge per provider). Fictitious accounts.</sub></p>
+<p align="center"><sub>Cards and Customize (Graphite, bars) · Summary (Midnight, rings by level) · Mini (Light, gauge per provider). Fictitious accounts.</sub></p>
 
 ---
 
