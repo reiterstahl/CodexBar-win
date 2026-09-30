@@ -36,9 +36,16 @@ internal static class ScreenshotCapture
             throw new InvalidOperationException($"{window.Title} has no rendered content to capture.");
         }
 
+        // Windows caps window height to the screen; lay the content out at its natural height so
+        // the capture is never clipped by a small display.
+        double width = root.ActualWidth;
+        root.Measure(new System.Windows.Size(width, double.PositiveInfinity));
+        var size = new System.Windows.Size(width, root.DesiredSize.Height);
+        root.Arrange(new Rect(size));
+
         var bitmap = new RenderTargetBitmap(
-            (int)Math.Ceiling(root.ActualWidth * Scale),
-            (int)Math.Ceiling(root.ActualHeight * Scale),
+            (int)Math.Ceiling(size.Width * Scale),
+            (int)Math.Ceiling(size.Height * Scale),
             96 * Scale,
             96 * Scale,
             PixelFormats.Pbgra32);

@@ -159,6 +159,9 @@
             </Border>
 
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}" />
+                </ScrollViewer.Resources>
                 <StackPanel Margin="20,16,20,18">
                     <TextBlock Style="{StaticResource SectionLabelStyle}" Text="TEMA" />
                     <ItemsControl ItemsSource="{Binding Customization.Themes}">
@@ -170,7 +173,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type local:OptionViewModel}">
                                 <Button
-                                    Margin="0,0,8,0"
+                                    Margin="0,0,6,0"
                                     Padding="5"
                                     AutomationProperties.Name="{Binding Label}"
                                     Style="{StaticResource TileButtonStyle}">
@@ -206,7 +209,7 @@
                                         </Border>
                                         <TextBlock
                                             Margin="1,6,0,0"
-                                            FontSize="12"
+                                            FontSize="11.5"
                                             FontWeight="SemiBold"
                                             Text="{Binding Label}"
                                             TextTrimming="CharacterEllipsis" />

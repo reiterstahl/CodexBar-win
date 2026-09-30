@@ -268,6 +268,7 @@ public partial class MainWindow : Window
     private void ApplyViewMode()
     {
         Width = ViewModel.BaseWidth * ViewModel.UiScale;
+        MaxHeight = SystemParameters.WorkArea.Height - 24;
     }
 
     private void EnsureWindowPosition()

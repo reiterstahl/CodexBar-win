@@ -476,36 +476,42 @@
                 </DockPanel>
             </Border>
 
-            <ItemsControl
-                Background="Transparent"
-                ItemTemplate="{StaticResource ProviderCardTemplate}"
-                ItemsSource="{Binding Providers}"
-                MouseLeftButtonDown="CardList_MouseLeftButtonDown">
-                <ItemsControl.Style>
-                    <Style TargetType="ItemsControl">
-                        <Setter Property="Margin" Value="12,0,12,12" />
-                        <Setter Property="ItemsPanel">
-                            <Setter.Value>
-                                <ItemsPanelTemplate>
-                                    <StackPanel />
-                                </ItemsPanelTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsMiniView}" Value="True">
-                                <Setter Property="Margin" Value="8,0,8,8" />
-                                <Setter Property="ItemsPanel">
-                                    <Setter.Value>
-                                        <ItemsPanelTemplate>
-                                            <UniformGrid Columns="2" />
-                                        </ItemsPanelTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ItemsControl.Style>
-            </ItemsControl>
+            <!-- Scrolls only when the cards do not fit on screen (small displays, large scale). -->
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}" />
+                </ScrollViewer.Resources>
+                <ItemsControl
+                    Background="Transparent"
+                    ItemTemplate="{StaticResource ProviderCardTemplate}"
+                    ItemsSource="{Binding Providers}"
+                    MouseLeftButtonDown="CardList_MouseLeftButtonDown">
+                    <ItemsControl.Style>
+                        <Style TargetType="ItemsControl">
+                            <Setter Property="Margin" Value="12,0,12,12" />
+                            <Setter Property="ItemsPanel">
+                                <Setter.Value>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel />
+                                    </ItemsPanelTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMiniView}" Value="True">
+                                    <Setter Property="Margin" Value="8,0,8,8" />
+                                    <Setter Property="ItemsPanel">
+                                        <Setter.Value>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Columns="2" />
+                                            </ItemsPanelTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Style>
+                </ItemsControl>
+            </ScrollViewer>
         </DockPanel>
     </Border>
 </Window>
