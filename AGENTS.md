@@ -34,7 +34,8 @@ keeps only the Windows port: a Foundation-only Swift usage engine and a native W
   `System.Windows.*` types qualified where WinForms names collide).
 - XAML: theme-dependent brushes use `DynamicResource`; colors come from `AppearancePalette`.
 - Swift: SwiftFormat/SwiftLint configs are in the repo root; 4-space indent, 120-char lines.
-- User-facing strings are Spanish.
+- User-facing strings live in `Localization/Loc.cs` with Spanish and English side by side; XAML uses
+  `{local:Tr Key}` and code uses `Loc.T`/`Loc.F`. The tests fail if a key is missing a translation.
 
 ## Security
 - Never read, copy, log, or persist provider credentials in the tray. Only the engine touches the

@@ -24,17 +24,17 @@ window, when it resets, and which account still has quota. Works with several ac
 [![License: MIT](https://img.shields.io/badge/license-MIT-6e5aff?style=flat-square)](LICENSE)
 
 <p align="center">
-  <img src="docs/images/tarjetas.png" width="400" alt="Cards view with the Grafito theme: four accounts with session and weekly bars, pace marker, and one exhausted account">
+  <img src="docs/images/tarjetas-en.png" width="400" alt="Cards view with the Grafito theme: four accounts with session and weekly bars, pace marker, and one exhausted account">
   &nbsp;
-  <img src="docs/images/personalizar.png" width="400" alt="Customize window with themes, accent colors, chart types, view, density, size, and behavior options">
+  <img src="docs/images/personalizar-en.png" width="400" alt="Customize window with themes, accent colors, chart types, view, density, size, and behavior options">
 </p>
 <p align="center">
-  <img src="docs/images/resumen.png" width="620" alt="Summary view with the Medianoche theme and ring charts colored by quota level">
+  <img src="docs/images/resumen-en.png" width="620" alt="Summary view with the Medianoche theme and ring charts colored by quota level">
 </p>
 <p align="center">
-  <img src="docs/images/mini.png" width="380" alt="Mini view with the Claro theme and gauges colored per provider">
+  <img src="docs/images/mini-en.png" width="380" alt="Mini view with the Claro theme and gauges colored per provider">
 </p>
-<p align="center"><sub>Cards and Customize (Grafito, bars) · Summary (Medianoche, rings by level) · Mini (Claro, gauge per provider). Fictitious accounts. The app's interface is in Spanish.</sub></p>
+<p align="center"><sub>Cards and Customize (Grafito, bars) · Summary (Medianoche, rings by level) · Mini (Claro, gauge per provider). Fictitious accounts.</sub></p>
 
 ---
 
@@ -53,30 +53,31 @@ window, when it resets, and which account still has quota. Works with several ac
 - Each account is queried in its own short-lived process, so one failing account never affects the
   others.
 - Click an account name to rename it.
-- When an account loses its session, its card shows **Copiar login**, which copies the PowerShell
+- When an account loses its session, its card shows **Copy login**, which copies the PowerShell
   command to sign in to that specific profile. The command contains no credentials.
 - Expired Claude Code tokens are refreshed automatically with the profile's refresh token.
 
 ### Quota status
 - **Pace marker**: a line on the bar shows where you would be if you spread usage evenly until the
   reset, and a hint warns when the current rate would run out first (for example,
-  *"se agota en ~20 h a este ritmo"*: runs out in ~20 h at this rate).
+  *runs out in ~20 h at this rate*).
 - When **Session** or **Weekly** hits 0%, the card turns red and moves below accounts that still have
   quota.
-- An exhausted card shows **"Vuelve en …"** (back in …) in amber, turning green when the reset is 30
+- An exhausted card shows **"Back in …"** in amber, turning green when the reset is 30
   minutes away or less.
-- When quota returns, the card moves back up with **"Disponible otra vez"** (available again) and
+- When quota returns, the card moves back up with **"Available again"** and
   flashes green until you click it. Optionally, Windows shows a notification.
 - The window footer shows which account gets its quota back next.
 
 ### Customization
-- **Themes**: Grafito, Medianoche, Claro, Papel, and high contrast.
+- **Themes**: Graphite, Midnight, Light, Paper, and high contrast.
 - **Accent color**: six presets, any color from the picker, or a `#RRGGBB` code. If the chosen color
   is hard to read on the theme, it is adjusted automatically to keep enough contrast.
 - **Chart type**: bars, rings, gauge, blocks, or large numbers.
 - **Chart colors**: accent, by quota level (green, amber, red), or a custom color per provider.
 - **Available** or **used** percentage, comfortable or compact density, and interface **scale** from
   80% to 160%, useful on 4K monitors.
+- **Language**: Spanish or English, or automatic (follows the Windows display language).
 - Everything applies instantly and is saved automatically.
 
 ### Window and tray
@@ -84,8 +85,8 @@ window, when it resets, and which account still has quota. Works with several ac
   compact grid with each account's session.
 - **Dynamic notification-area icon**: shows the session and weekly quota of the most limited account,
   with a red dot when one is exhausted or a green dot when one has just recovered.
-- Large **Actualizar** (refresh) button at the bottom of the window, in every view.
-- Tray menu with *Abrir*, *Actualizar*, *Personalizar…*, and *Salir* (open, refresh, customize, exit).
+- Large **Refresh** button at the bottom of the window, in every view.
+- Tray menu with *Open*, *Refresh*, *Customize…*, and *Exit*.
 - **Always on top**, minimize to the taskbar, and hide to the tray without closing the app.
 - Drag the window by its header or any card; it remembers its position.
 - Data refreshes every 5 minutes; the countdown advances every minute without querying providers again.
@@ -109,9 +110,9 @@ window, when it resets, and which account still has quota. Works with several ac
   missing, it downloads and installs it from Microsoft; only then does Windows ask for administrator
   permission.
 - **Automatic updates**: CodexBar checks GitHub Releases at startup and every 6 hours. When a new
-  version is available, it downloads it in the background and shows **Reiniciar** (restart) in the
+  version is available, it downloads it in the background and shows **Restart** in the
   window and the tray menu. If you don't restart, it installs the next time you open the app.
-- To start with Windows, turn on **Iniciar con Windows** in **Personalizar**.
+- To start with Windows, turn on **Start with Windows** in **Customize**.
 - To uninstall, use *Settings → Apps → Installed apps → CodexBar*. Your preferences in
   `%LOCALAPPDATA%\CodexBar` and your Codex and Claude credentials are left untouched.
 

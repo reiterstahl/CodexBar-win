@@ -80,6 +80,7 @@ cuentas por proveedor.
   elegible por proveedor.
 - Porcentaje **disponible** o **usado**, densidad cómoda o compacta y **escala** del 80 % al 160 %,
   útil en monitores 4K.
+- **Idioma**: español o inglés, o automático (según el idioma de Windows).
 - Todo se aplica al instante y se guarda solo.
 
 ### Ventana y bandeja
