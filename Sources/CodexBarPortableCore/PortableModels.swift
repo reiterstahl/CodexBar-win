@@ -50,6 +50,28 @@ public struct PortableProviderIdentity: Codable, Equatable, Sendable {
     }
 }
 
+/// One Codex rate-limit reset credit that the account can still redeem in ChatGPT.
+public struct PortableResetCredit: Codable, Equatable, Sendable {
+    public let expiresAt: Date?
+    public let title: String?
+
+    public init(expiresAt: Date?, title: String?) {
+        self.expiresAt = expiresAt
+        self.title = title
+    }
+}
+
+/// Available Codex reset credits, soonest expiry first. Read-only: CodexBar never redeems them.
+public struct PortableResetCredits: Codable, Equatable, Sendable {
+    public let availableCount: Int
+    public let credits: [PortableResetCredit]
+
+    public init(availableCount: Int, credits: [PortableResetCredit]) {
+        self.availableCount = max(0, availableCount)
+        self.credits = credits
+    }
+}
+
 public struct PortableProviderSnapshot: Codable, Equatable, Sendable {
     public let provider: PortableProvider
     public let displayName: String
@@ -57,13 +79,16 @@ public struct PortableProviderSnapshot: Codable, Equatable, Sendable {
     public let windows: [PortableRateWindow]
     public let identity: PortableProviderIdentity?
     public let updatedAt: Date
+    /// Optional extra; absent when the provider has no such concept or the lookup failed.
+    public let resetCredits: PortableResetCredits?
 
     public init(
         provider: PortableProvider,
         source: String,
         windows: [PortableRateWindow],
         identity: PortableProviderIdentity?,
-        updatedAt: Date)
+        updatedAt: Date,
+        resetCredits: PortableResetCredits? = nil)
     {
         self.provider = provider
         self.displayName = provider.displayName
@@ -71,6 +96,17 @@ public struct PortableProviderSnapshot: Codable, Equatable, Sendable {
         self.windows = windows
         self.identity = identity
         self.updatedAt = updatedAt
+        self.resetCredits = resetCredits
+    }
+
+    func withResetCredits(_ resetCredits: PortableResetCredits?) -> PortableProviderSnapshot {
+        PortableProviderSnapshot(
+            provider: self.provider,
+            source: self.source,
+            windows: self.windows,
+            identity: self.identity,
+            updatedAt: self.updatedAt,
+            resetCredits: resetCredits)
     }
 }
 

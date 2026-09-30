@@ -229,6 +229,9 @@ The engine emits:
 - successful `providers`
 - independent `failures`
 - session, weekly, model-specific windows, reset timestamps, and remaining percentages
+- optional `resetCredits` for Codex (`availableCount` plus each available credit's `expiresAt`),
+  read best-effort from `GET https://chatgpt.com/backend-api/wham/rate-limit-reset-credits` with the
+  same OAuth context; a failed lookup omits the field and never fails the snapshot
 - non-secret identity fields when available
 
 The WPF tray application consumes this contract without loading or parsing credential files

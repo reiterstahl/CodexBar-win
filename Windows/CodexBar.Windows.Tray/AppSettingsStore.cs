@@ -146,6 +146,9 @@ public sealed class AppSettings
 
     public double UiScale { get; set; } = 1.0;
 
+    /// <summary>Main window opacity, from 0.4 (mostly see-through) to 1.0 (solid).</summary>
+    public double WindowOpacity { get; set; } = 1.0;
+
     public double? WindowLeft { get; set; }
 
     public double? WindowTop { get; set; }
@@ -202,6 +205,9 @@ public sealed class AppSettings
         ColorMode = ThemeCatalog.FormatOption(ThemeCatalog.ParseOption(ColorMode, ChartColorMode.Accent));
         Density = ThemeCatalog.FormatOption(ThemeCatalog.ParseOption(Density, Tray.Density.Comfortable));
         Language = Language is Loc.Spanish or Loc.English ? Language : Loc.Automatic;
+        WindowOpacity = double.IsFinite(WindowOpacity)
+            ? Math.Clamp(Math.Round(WindowOpacity, 2), MainWindowViewModel.MinimumWindowOpacity, 1.0)
+            : 1.0;
     }
 
     public void ResetAppearance()
@@ -216,6 +222,7 @@ public sealed class AppSettings
         ViewMode = null;
         CompactView = false;
         UiScale = 1.0;
+        WindowOpacity = 1.0;
         ShowUsedPercent = false;
         ShowPace = true;
         AvailableFirst = true;

@@ -48,6 +48,9 @@ cuentas por proveedor.
 - **Cuenta regresiva en vivo** hasta la próxima renovación, más la fecha completa localizada
   (por ejemplo, *jueves 2 de octubre, 3:40 p. m.*).
 - Se omiten las cuotas semanales por modelo que repiten la información de la cuota general.
+- **Resets de Codex**: si ChatGPT te otorgó resets de límite, cada cuenta muestra cuántos tenés disponibles,
+  con su vencimiento en el tooltip (se resalta si alguno vence en 3 días o menos). CodexBar solo los muestra;
+  se usan desde ChatGPT o Codex.
 
 ### Varias cuentas
 - Detecta automáticamente perfiles aislados `%USERPROFILE%\.codex-*` y `%USERPROFILE%\.claude-*`
@@ -82,6 +85,7 @@ cuentas por proveedor.
   elegible por proveedor.
 - Porcentaje **disponible** o **usado**, densidad cómoda o compacta y **escala** del 80 % al 160 %,
   útil en monitores 4K.
+- **Opacidad de la ventana** del 40 % al 100 %, para dejarla semitransparente sobre otras apps.
 - **Idioma**: español o inglés, o automático (según el idioma de Windows).
 - Todo se aplica al instante y se guarda solo.
 

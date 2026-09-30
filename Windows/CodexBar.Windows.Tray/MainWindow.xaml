@@ -6,6 +6,7 @@
     Title="CodexBar"
     Width="520"
     MinHeight="120"
+    Opacity="{Binding WindowOpacity}"
     AllowsTransparency="True"
     Background="Transparent"
     FontFamily="{StaticResource UiFont}"
@@ -188,20 +189,52 @@
                                 TextTrimming="CharacterEllipsis"
                                 Visibility="{Binding ShowSubtitle, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </StackPanel>
-                        <Border
+                        <StackPanel
                             Grid.Column="2"
-                            Margin="8,0,0,0"
-                            Padding="10,4"
                             VerticalAlignment="Center"
-                            Background="{Binding PillBackground}"
-                            CornerRadius="12"
-                            Visibility="{Binding ShowPill, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <TextBlock
-                                FontSize="12"
-                                FontWeight="Bold"
-                                Foreground="{Binding PillForeground}"
-                                Text="{Binding PillText}" />
-                        </Border>
+                            Orientation="Horizontal">
+                            <!-- Codex reset credits available in ChatGPT (read-only). -->
+                            <Border
+                                Margin="8,0,0,0"
+                                Padding="8,3"
+                                VerticalAlignment="Center"
+                                Background="{Binding ResetChipBackground}"
+                                CornerRadius="12"
+                                ToolTip="{Binding ResetCreditsTooltip}"
+                                Visibility="{Binding HasResetCredits, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Viewbox Width="12" Height="12" Margin="0,0,5,0">
+                                        <Canvas Width="24" Height="24">
+                                            <Path
+                                                Data="M20,12 A8,8 0 1 1 17.66,6.34 M20,4 V9 H15"
+                                                Stroke="{Binding ResetChipForeground}"
+                                                StrokeEndLineCap="Round"
+                                                StrokeLineJoin="Round"
+                                                StrokeStartLineCap="Round"
+                                                StrokeThickness="2.6" />
+                                        </Canvas>
+                                    </Viewbox>
+                                    <TextBlock
+                                        FontSize="12"
+                                        FontWeight="Bold"
+                                        Foreground="{Binding ResetChipForeground}"
+                                        Text="{Binding ResetCreditsLabel}" />
+                                </StackPanel>
+                            </Border>
+                            <Border
+                                Margin="8,0,0,0"
+                                Padding="10,4"
+                                VerticalAlignment="Center"
+                                Background="{Binding PillBackground}"
+                                CornerRadius="12"
+                                Visibility="{Binding ShowPill, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock
+                                    FontSize="12"
+                                    FontWeight="Bold"
+                                    Foreground="{Binding PillForeground}"
+                                    Text="{Binding PillText}" />
+                            </Border>
+                        </StackPanel>
                         <Button
                             Grid.Column="3"
                             Margin="8,0,0,0"

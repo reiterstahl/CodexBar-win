@@ -200,6 +200,18 @@ public sealed class Loc : INotifyPropertyChanged
             ["StartWithWindows"] = ("Iniciar con Windows", "Start with Windows"),
             ["StartWithWindowsHint"] = ("Abre CodexBar en el área de notificación al iniciar sesión", "Opens CodexBar in the notification area when you sign in"),
 
+            // Codex reset credits
+            ["ResetCreditOne"] = ("{0} reset", "{0} reset"),
+            ["ResetCreditMany"] = ("{0} resets", "{0} resets"),
+            ["ResetCreditsTipHeader"] = (
+                "Resets de límite disponibles en ChatGPT. CodexBar solo los muestra; se usan desde ChatGPT o Codex.",
+                "Rate-limit resets available in ChatGPT. CodexBar only shows them; redeem them from ChatGPT or Codex."),
+            ["ResetCreditExpires"] = ("• Vence el {0}", "• Expires {0}"),
+            ["ResetCreditNoExpiry"] = ("• Sin vencimiento", "• No expiry"),
+
+            // Window opacity
+            ["WindowOpacity"] = ("Opacidad de la ventana", "Window opacity"),
+
             // Accounts
             ["SectionAccounts"] = ("CUENTAS", "ACCOUNTS"),
             ["AccountsHint"] = (

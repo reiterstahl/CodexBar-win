@@ -46,6 +46,9 @@ window, when it resets, and which account still has quota. Works with several ac
   percentage.
 - **Live countdown** to the next reset, plus the full localized date.
 - Model-specific weekly quotas that repeat the general quota are omitted.
+- **Codex resets**: when ChatGPT grants you rate-limit resets, each account shows how many are available,
+  with their expiry in the tooltip (highlighted when one expires within 3 days). CodexBar only shows them;
+  redeem them from ChatGPT or Codex.
 
 ### Multiple accounts
 - Automatically discovers isolated `%USERPROFILE%\.codex-*` and `%USERPROFILE%\.claude-*` profiles
@@ -79,6 +82,7 @@ window, when it resets, and which account still has quota. Works with several ac
 - **Chart colors**: accent, by quota level (green, amber, red), or a custom color per provider.
 - **Available** or **used** percentage, comfortable or compact density, and interface **scale** from
   80% to 160%, useful on 4K monitors.
+- **Window opacity** from 40% to 100%, to keep it semi-transparent over other apps.
 - **Language**: Spanish or English, or automatic (follows the Windows display language).
 - Everything applies instantly and is saved automatically.
 

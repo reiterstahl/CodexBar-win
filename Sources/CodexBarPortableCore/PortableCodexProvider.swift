@@ -6,6 +6,7 @@ import FoundationNetworking
 enum PortableCodexProvider {
     private static let defaultBaseURL = "https://chatgpt.com/backend-api"
     private static let usagePath = "/wham/usage"
+    private static let resetCreditsPath = "/wham/rate-limit-reset-credits"
 
     static func fetch(
         credentials: PortableCodexCredentials,
@@ -37,10 +38,16 @@ enum PortableCodexProvider {
 
         switch response.statusCode {
         case 200...299:
-            return try self.parse(
+            let snapshot = try self.parse(
                 response.data,
                 credentials: credentials,
                 now: now)
+            let resetCredits = await self.fetchResetCredits(
+                credentials: credentials,
+                environment: environment,
+                transport: transport,
+                now: now)
+            return snapshot.withResetCredits(resetCredits)
         case 401, 403:
             throw PortableProviderError.unauthorized(provider: .codex)
         default:
@@ -84,6 +91,76 @@ enum PortableCodexProvider {
             windows: windows,
             identity: identity,
             updatedAt: now)
+    }
+
+    /// Best-effort lookup of rate-limit reset credits. Any failure returns nil so the usage
+    /// snapshot is never lost because of this optional extra.
+    static func fetchResetCredits(
+        credentials: PortableCodexCredentials,
+        environment: PortableHostEnvironment,
+        transport: any PortableHTTPTransport,
+        now: Date) async -> PortableResetCredits?
+    {
+        guard let url = self.resetCreditsURL(environment: environment) else {
+            return nil
+        }
+
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(credentials.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("CodexBar-Windows", forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("codex-1", forHTTPHeaderField: "OpenAI-Beta")
+        request.setValue("Codex Desktop", forHTTPHeaderField: "originator")
+        if let accountID = credentials.accountID, !accountID.isEmpty {
+            request.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-ID")
+        }
+
+        guard let response = try? await transport.response(for: request),
+              (200...299).contains(response.statusCode)
+        else {
+            return nil
+        }
+        return self.parseResetCredits(response.data, now: now)
+    }
+
+    static func parseResetCredits(_ data: Data, now: Date) -> PortableResetCredits? {
+        guard let payload = try? JSONDecoder().decode(PortableResetCreditsResponse.self, from: data) else {
+            return nil
+        }
+
+        let available = payload.credits
+            .filter { credit in
+                credit.status.lowercased() == "available" &&
+                    (credit.expiresAt.flatMap(Self.parseDate).map { $0 > now } ?? true)
+            }
+            .map { PortableResetCredit(expiresAt: $0.expiresAt.flatMap(Self.parseDate), title: $0.title) }
+            .sorted { lhs, rhs in
+                switch (lhs.expiresAt, rhs.expiresAt) {
+                case let (left?, right?): left < right
+                case (_?, nil): true
+                default: false
+                }
+            }
+        // Some responses only report the count; trust the itemized list when it is present.
+        let count = payload.credits.isEmpty ? (payload.availableCount ?? 0) : available.count
+        return PortableResetCredits(availableCount: count, credits: available)
+    }
+
+    static func resetCreditsURL(environment: PortableHostEnvironment) -> URL? {
+        let usage = self.usageURL(environment: environment).absoluteString
+        guard usage.hasSuffix(Self.usagePath) else {
+            return nil
+        }
+        return URL(string: String(usage.dropLast(Self.usagePath.count)) + Self.resetCreditsPath)
+    }
+
+    private static func parseDate(_ raw: String) -> Date? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let seconds = ISO8601DateFormatter()
+        seconds.formatOptions = [.withInternetDateTime]
+        return fractional.date(from: raw) ?? seconds.date(from: raw)
     }
 
     static func usageURL(environment: PortableHostEnvironment) -> URL {
@@ -155,6 +232,39 @@ enum PortableCodexProvider {
             return direct
         }
         return (claims?[namespace] as? [String: Any])?[directKey] as? String
+    }
+}
+
+private struct PortableResetCreditsResponse: Decodable {
+    struct Credit: Decodable {
+        let status: String
+        let expiresAt: String?
+        let title: String?
+
+        enum CodingKeys: String, CodingKey {
+            case status
+            case expiresAt = "expires_at"
+            case title
+        }
+    }
+
+    let credits: [Credit]
+    let availableCount: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case credits
+        case availableCount = "available_count"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.credits = try container.decodeIfPresent([Credit].self, forKey: .credits) ?? []
+        self.availableCount = try? container.decodeIfPresent(Int.self, forKey: .availableCount)
+        guard container.contains(.credits) || container.contains(.availableCount) else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.credits,
+                .init(codingPath: decoder.codingPath, debugDescription: "Not a reset-credits payload."))
+        }
     }
 }
 

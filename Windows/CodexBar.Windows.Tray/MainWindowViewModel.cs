@@ -21,6 +21,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
     public const double MinimumUiScale = 0.8;
     public const double MaximumUiScale = 1.6;
+    public const double MinimumWindowOpacity = 0.4;
 
     private readonly AppSettingsStore _settingsStore;
     private readonly Dictionary<string, bool> _accountAvailability =
@@ -185,6 +186,25 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         set => UiScale = value / 100;
     }
 
+    public double WindowOpacity => Settings.WindowOpacity;
+
+    public double WindowOpacityPercent
+    {
+        get => Math.Round(Settings.WindowOpacity * 100);
+        set
+        {
+            double opacity = Math.Clamp(value / 100, MinimumWindowOpacity, 1.0);
+            if (Math.Abs(opacity - Settings.WindowOpacity) < 0.001)
+            {
+                return;
+            }
+
+            _settingsStore.Update(settings => settings.WindowOpacity = opacity);
+            OnPropertyChanged(nameof(WindowOpacity));
+            OnPropertyChanged(nameof(WindowOpacityPercent));
+        }
+    }
+
     public void SelectView(ViewMode view)
     {
         if (view == _options.View)
@@ -226,6 +246,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(Status));
         OnPropertyChanged(nameof(UpdateText));
         OnPropertyChanged(nameof(RefreshButtonLabel));
+        OnPropertyChanged(nameof(WindowOpacity));
+        OnPropertyChanged(nameof(WindowOpacityPercent));
         Customization.Refresh();
         AppearanceChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -675,6 +697,59 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
 
     public bool ShowPill => View == ViewMode.Cards && PillText.Length > 0;
 
+    /// <summary>Codex rate-limit reset credits reported by ChatGPT, when any are available.</summary>
+    public ResetCredits? ResetCredits { get; private init; }
+
+    public int ResetCreditCount => Math.Max(0, ResetCredits?.AvailableCount ?? 0);
+
+    public bool HasResetCredits => ResetCreditCount > 0;
+
+    public string ResetCreditsLabel =>
+        Loc.F(ResetCreditCount == 1 ? "ResetCreditOne" : "ResetCreditMany", ResetCreditCount);
+
+    public string ResetCreditsTooltip
+    {
+        get
+        {
+            var lines = new List<string> { Loc.T("ResetCreditsTipHeader") };
+            ResetCredit[] credits = ResetCredits?.Credits ?? [];
+            foreach (ResetCredit credit in credits)
+            {
+                lines.Add(credit.ExpiresAt is DateTimeOffset expiresAt
+                    ? Loc.F(
+                        "ResetCreditExpires",
+                        expiresAt.ToLocalTime().ToString(Loc.T("DateLong"), Loc.Instance.Culture))
+                    : Loc.T("ResetCreditNoExpiry"));
+            }
+            return string.Join(Environment.NewLine, lines);
+        }
+    }
+
+    public Brush? ResetChipForeground => _palette is null ? null : _palette.Brush(ResetChipColor);
+
+    public Brush? ResetChipBackground => _palette is null
+        ? null
+        : _palette.Brush(CardBackground.Mix(ResetChipColor, 0.16));
+
+    private bool ResetCreditsExpireSoon => (ResetCredits?.Credits ?? [])
+        .Any(credit => credit.ExpiresAt is DateTimeOffset expiresAt &&
+            expiresAt > DateTimeOffset.Now &&
+            expiresAt - DateTimeOffset.Now <= TimeSpan.FromDays(3));
+
+    private RgbColor ResetChipColor
+    {
+        get
+        {
+            if (_palette is null)
+            {
+                return RgbColor.White;
+            }
+
+            RgbColor color = ResetCreditsExpireSoon ? _palette.Status.Warn : _palette.Accent;
+            return color.EnsureContrast(CardBackground, 4.5);
+        }
+    }
+
     public Brush? PillForeground => _palette is null ? null : _palette.Brush(PillColor);
 
     public Brush? PillBackground => _palette is null
@@ -764,6 +839,8 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PillText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PillForeground)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PillBackground)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ResetChipForeground)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ResetChipBackground)));
     }
 
     public void SetRecoveryPulse(bool visible)
@@ -808,7 +885,10 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
             recoveryAlertActive,
             recoveryPulseVisible,
             visibleWindows.Select(RateWindowViewModel.FromSnapshot).ToArray(),
-            rename);
+            rename)
+        {
+            ResetCredits = snapshot.ResetCredits,
+        };
     }
 
     public static ProviderCardViewModel FromFailure(

@@ -63,7 +63,14 @@ static void ParsesSnapshotContract()
                 }
               ],
               "identity": { "accountEmail": null, "plan": "plus" },
-              "updatedAt": "2026-07-27T18:00:00Z"
+              "updatedAt": "2026-07-27T18:00:00Z",
+              "resetCredits": {
+                "availableCount": 2,
+                "credits": [
+                  { "expiresAt": "2026-08-01T00:00:00Z", "title": "Reset" },
+                  { "expiresAt": null, "title": null }
+                ]
+              }
             }
           ],
           "failures": [
@@ -79,6 +86,8 @@ static void ParsesSnapshotContract()
     Assert(snapshot.Providers.Length == 1, "Expected one provider.");
     Assert(snapshot.Failures.Length == 1, "Expected one independent failure.");
     Assert(snapshot.Providers[0].Windows[0].RemainingPercent == 75, "Expected 75% remaining.");
+    Assert(snapshot.Providers[0].ResetCredits?.AvailableCount == 2, "Expected two reset credits.");
+    Assert(snapshot.Providers[0].ResetCredits?.Credits?[1].ExpiresAt is null, "Expected a credit without expiry.");
 }
 
 static void RejectsUnsupportedSchema()

@@ -69,6 +69,38 @@ struct PortableEngineTests {
     }
 
     @Test
+    func `Codex snapshot includes reset credits and survives their failure`() async throws {
+        let now = Date(timeIntervalSince1970: 1_790_000_000)
+        let credentials = PortableCodexCredentials(
+            accessToken: "access",
+            refreshToken: "refresh",
+            idToken: nil,
+            accountID: "account",
+            lastRefresh: nil)
+        let environment = PortableHostEnvironment(values: ["HOME": "/users/tester"])
+        let usage = Data("""
+        {"rate_limit": {"primary_window": {"used_percent": 40, "reset_at": 1790010000, "limit_window_seconds": 18000}}}
+        """.utf8)
+
+        let withCredits = try await PortableCodexProvider.fetch(
+            credentials: credentials,
+            environment: environment,
+            transport: CodexResetCreditsTransport(usage: usage, credits: Data("""
+            {"available_count": 1, "credits": [{"status": "available", "expires_at": "2026-10-20T00:00:00Z"}]}
+            """.utf8), creditsStatus: 200),
+            now: now)
+        #expect(withCredits.resetCredits?.availableCount == 1)
+
+        let withoutCredits = try await PortableCodexProvider.fetch(
+            credentials: credentials,
+            environment: environment,
+            transport: CodexResetCreditsTransport(usage: usage, credits: Data(), creditsStatus: 500),
+            now: now)
+        #expect(withoutCredits.resetCredits == nil)
+        #expect(withoutCredits.windows.count == 1)
+    }
+
+    @Test
     func `Engine keeps Claude result when Codex credentials fail`() async {
         let now = Date(timeIntervalSince1970: 1_785_000_000)
         let environment = PortableHostEnvironment(values: ["HOME": "/users/tester"])
@@ -136,6 +168,20 @@ struct PortableEngineTests {
             try #require(store.value(at: environment.claudeCredentialsURL)))
         #expect(persisted.accessToken == "refreshed-access")
         #expect(persisted.refreshToken == "refreshed-refresh")
+    }
+}
+
+private struct CodexResetCreditsTransport: PortableHTTPTransport {
+    let usage: Data
+    let credits: Data
+    let creditsStatus: Int
+
+    func response(for request: URLRequest) async throws -> PortableHTTPResponse {
+        if request.url?.path.hasSuffix("/rate-limit-reset-credits") == true {
+            #expect(request.value(forHTTPHeaderField: "ChatGPT-Account-ID") == "account")
+            return PortableHTTPResponse(data: self.credits, statusCode: self.creditsStatus)
+        }
+        return PortableHTTPResponse(data: self.usage, statusCode: 200)
     }
 }
 

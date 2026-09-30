@@ -590,6 +590,33 @@
                             Value="{Binding UiScalePercent}" />
                     </DockPanel>
 
+                    <DockPanel Margin="0,14,0,0">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Style="{StaticResource SettingTitleStyle}"
+                            Text="{local:Tr WindowOpacity}" />
+                        <TextBlock
+                            Width="44"
+                            VerticalAlignment="Center"
+                            DockPanel.Dock="Right"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource AccentTextBrush}"
+                            Text="{Binding WindowOpacityPercent, StringFormat='{}{0:0}%'}"
+                            TextAlignment="Right" />
+                        <Slider
+                            Margin="14,0,0,0"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{local:Tr WindowOpacity}"
+                            IsSnapToTickEnabled="True"
+                            LargeChange="10"
+                            Maximum="100"
+                            Minimum="40"
+                            SmallChange="5"
+                            TickFrequency="5"
+                            Value="{Binding WindowOpacityPercent}" />
+                    </DockPanel>
+
                     <TextBlock
                         Margin="0,20,0,6"
                         Style="{StaticResource SectionLabelStyle}"

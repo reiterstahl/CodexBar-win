@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+- **Resets de Codex**: cada cuenta de Codex muestra los resets de límite disponibles en ChatGPT, con su
+  vencimiento en el tooltip. Se resalta si alguno vence en 3 días o menos. Solo lectura: CodexBar no los canjea.
+- **Opacidad de la ventana** configurable en Personalizar (40 % a 100 %).
+
 ## 1.2.0
 
 - Nueva sección **Cuentas** en Personalizar: botones para agregar cuentas de Codex o Claude Code.

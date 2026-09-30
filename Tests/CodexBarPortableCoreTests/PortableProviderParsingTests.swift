@@ -124,4 +124,49 @@ struct PortableProviderParsingTests {
             PortableCodexProvider.usageURL(environment: environment).absoluteString
                 == "https://example.test/v1/api/codex/usage")
     }
+
+    @Test
+    func `Codex reset credits keep only available unexpired credits, soonest first`() throws {
+        let now = Date(timeIntervalSince1970: 1_790_000_000)
+        let credits = try #require(PortableCodexProvider.parseResetCredits(Data("""
+        {
+          "available_count": 3,
+          "credits": [
+            {"id": "a", "reset_type": "rate_limit", "status": "available",
+             "granted_at": "2026-09-01T00:00:00Z", "expires_at": "2026-10-20T00:00:00.000Z", "title": "Reset"},
+            {"id": "b", "reset_type": "rate_limit", "status": "available",
+             "granted_at": "2026-09-01T00:00:00Z", "expires_at": "2026-10-05T12:00:00Z"},
+            {"id": "c", "reset_type": "rate_limit", "status": "redeemed",
+             "granted_at": "2026-09-01T00:00:00Z", "expires_at": "2026-10-30T00:00:00Z"},
+            {"id": "d", "reset_type": "rate_limit", "status": "available",
+             "granted_at": "2026-08-01T00:00:00Z", "expires_at": "2026-09-01T00:00:00Z"},
+            {"id": "e", "reset_type": "rate_limit", "status": "available",
+             "granted_at": "2026-09-01T00:00:00Z"}
+          ]
+        }
+        """.utf8), now: now))
+
+        #expect(credits.availableCount == 3)
+        #expect(credits.credits.count == 3)
+        #expect(credits.credits[0].expiresAt == ISO8601DateFormatter().date(from: "2026-10-05T12:00:00Z"))
+        #expect(credits.credits[1].title == "Reset")
+        #expect(credits.credits[2].expiresAt == nil)
+    }
+
+    @Test
+    func `Codex reset credits accept count-only payloads and reject unrelated JSON`() {
+        let now = Date(timeIntervalSince1970: 1_790_000_000)
+        let countOnly = PortableCodexProvider.parseResetCredits(Data(#"{"available_count": 2}"#.utf8), now: now)
+        #expect(countOnly?.availableCount == 2)
+        #expect(countOnly?.credits.isEmpty == true)
+        #expect(PortableCodexProvider.parseResetCredits(Data(#"{"rate_limit": {}}"#.utf8), now: now) == nil)
+        #expect(PortableCodexProvider.parseResetCredits(Data("not json".utf8), now: now) == nil)
+    }
+
+    @Test
+    func `Codex reset credits URL sits beside the usage endpoint`() {
+        let environment = PortableHostEnvironment(values: ["HOME": "/users/tester"])
+        #expect(PortableCodexProvider.resetCreditsURL(environment: environment)?.absoluteString
+            == "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits")
+    }
 }

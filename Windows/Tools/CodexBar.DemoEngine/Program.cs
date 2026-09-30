@@ -37,6 +37,7 @@ var snapshot = new
             },
             identity = new { accountEmail = account.Email, plan = account.Plan },
             updatedAt = now,
+            resetCredits = ResetCredits(provider, secondary),
         },
     },
     failures = Array.Empty<object>(),
@@ -53,6 +54,24 @@ object Window(string id, string label, double usedPercent, int windowMinutes, in
     windowMinutes,
     resetsAt = now.AddMinutes(resetMinutes),
 };
+
+object? ResetCredits(string providerName, bool isSecondary)
+{
+    // Codex only: two credits on the personal account, one expiring soon on the work account.
+    if (providerName != "codex")
+    {
+        return null;
+    }
+
+    double[] expiryDays = isSecondary ? [2] : [12, 20];
+    return new
+    {
+        availableCount = expiryDays.Length,
+        credits = expiryDays
+            .Select(days => new { expiresAt = (DateTimeOffset?)now.AddDays(days), title = "Rate limit reset" })
+            .ToArray(),
+    };
+}
 
 static string? ReadOption(string[] arguments, string name)
 {

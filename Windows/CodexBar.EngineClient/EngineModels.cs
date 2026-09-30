@@ -14,7 +14,17 @@ public sealed record ProviderSnapshot(
     string Source,
     RateWindow[] Windows,
     ProviderIdentity? Identity,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    ResetCredits? ResetCredits = null);
+
+/// <summary>Codex rate-limit reset credits still available in ChatGPT; read-only.</summary>
+public sealed record ResetCredits(
+    int AvailableCount,
+    ResetCredit[]? Credits);
+
+public sealed record ResetCredit(
+    DateTimeOffset? ExpiresAt,
+    string? Title);
 
 public sealed record RateWindow(
     string Id,
