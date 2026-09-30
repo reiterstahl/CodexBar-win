@@ -151,7 +151,7 @@
                         VerticalAlignment="Center"
                         FontSize="11"
                         Foreground="{DynamicResource SecondaryTextBrush}"
-                        Text="{Binding Customization.SettingsLocation, StringFormat='Se guarda en {0}'}"
+                        Text="{Binding Customization.FooterText}"
                         TextTrimming="CharacterEllipsis" />
                 </DockPanel>
             </Border>
@@ -534,6 +534,18 @@
                         <StackPanel Margin="0,0,12,0">
                             <TextBlock Style="{StaticResource SettingTitleStyle}" Text="Ícono dinámico en la bandeja" />
                             <TextBlock Style="{StaticResource SettingHintStyle}" Text="Muestra la sesión y la semana de la cuenta más limitada" />
+                        </StackPanel>
+                    </DockPanel>
+                    <DockPanel Margin="0,4">
+                        <CheckBox
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="Iniciar con Windows"
+                            DockPanel.Dock="Right"
+                            IsChecked="{Binding Customization.StartWithWindows}"
+                            Style="{StaticResource SwitchStyle}" />
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Style="{StaticResource SettingTitleStyle}" Text="Iniciar con Windows" />
+                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="Abre CodexBar en el área de notificación al iniciar sesión" />
                         </StackPanel>
                     </DockPanel>
                     <DockPanel Margin="0,4">

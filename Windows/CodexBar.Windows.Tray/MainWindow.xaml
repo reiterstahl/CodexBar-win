@@ -454,6 +454,34 @@
                     TextTrimming="CharacterEllipsis" />
             </DockPanel>
 
+            <Border
+                Margin="12,0,12,10"
+                Padding="12,8,8,8"
+                Background="{DynamicResource AccentMutedBrush}"
+                BorderBrush="{DynamicResource AccentBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                DockPanel.Dock="Bottom"
+                Visibility="{Binding HasUpdate, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <DockPanel>
+                    <Button
+                        Margin="10,0,0,0"
+                        Padding="12,4"
+                        Click="InstallUpdateButton_Click"
+                        Content="Reiniciar"
+                        DockPanel.Dock="Right"
+                        FontSize="12"
+                        Style="{StaticResource AccentButtonStyle}"
+                        ToolTip="Cierra CodexBar, instala la versión nueva y lo vuelve a abrir" />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        Text="{Binding UpdateText}"
+                        TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+            </Border>
+
             <ItemsControl
                 Background="Transparent"
                 ItemTemplate="{StaticResource ProviderCardTemplate}"

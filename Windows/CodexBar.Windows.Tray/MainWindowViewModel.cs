@@ -35,6 +35,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private string? _transientStatus;
     private DateTimeOffset? _lastUpdated;
     private double _uiScale;
+    private string? _updateVersion;
     private AppearancePalette _palette;
     private AppearanceOptions _options;
 
@@ -130,6 +131,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public Brush FooterDotBrush => NextRecovery() is null
         ? _palette.Brush(_palette.AccentFill)
         : _palette.Brush(_palette.Status.Warn);
+
+    public bool HasUpdate => _updateVersion is not null;
+
+    public string UpdateText => _updateVersion is null
+        ? string.Empty
+        : $"CodexBar {_updateVersion} está lista para instalar";
 
     public bool CanRefresh => !_isRefreshing;
 
@@ -342,6 +349,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             limiting.WeeklyWindow?.RemainingPercent ?? 100,
             withData.Any(card => card.IsExhausted),
             HasRecoveryAlerts);
+    }
+
+    public void SetUpdateReady(string version)
+    {
+        _updateVersion = version;
+        OnPropertyChanged(nameof(HasUpdate));
+        OnPropertyChanged(nameof(UpdateText));
     }
 
     public void ApplyError(string message)

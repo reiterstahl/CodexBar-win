@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.IO;
+using System.Reflection;
 using Brush = System.Windows.Media.Brush;
 
 namespace CodexBar.Windows.Tray;
@@ -155,7 +156,44 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
         set => Change(settings => settings.DynamicTrayIcon = value);
     }
 
+    public bool StartWithWindows
+    {
+        get => StartupRegistration.IsEnabled;
+        set
+        {
+            try
+            {
+                if (value)
+                {
+                    StartupRegistration.Enable();
+                }
+                else
+                {
+                    StartupRegistration.Disable();
+                }
+            }
+            catch (Exception)
+            {
+                // A locked-down registry leaves the switch showing the real state below.
+            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StartWithWindows)));
+        }
+    }
+
     public string SettingsLocation => Path.Combine("%LOCALAPPDATA%", "CodexBar", "settings.json");
+
+    public string FooterText => $"CodexBar {AppVersion} · Se guarda en {SettingsLocation}";
+
+    public static string AppVersion
+    {
+        get
+        {
+            string? version = Assembly.GetEntryAssembly()?
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion;
+            return string.IsNullOrWhiteSpace(version) ? "dev" : version.Split('+')[0];
+        }
+    }
 
     private AppSettings Settings => _store.Settings;
 

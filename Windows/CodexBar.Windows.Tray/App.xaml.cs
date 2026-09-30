@@ -16,6 +16,9 @@ public partial class App : System.Windows.Application
     private DispatcherTimer? _clockTimer;
     private DispatcherTimer? _refreshTimer;
     private DispatcherTimer? _trayClickTimer;
+    private DispatcherTimer? _updateTimer;
+    private Forms.ToolStripMenuItem? _updateMenuItem;
+    private readonly AppUpdater _updater = new();
     private Forms.NotifyIcon? _notifyIcon;
     private Icon? _normalIcon;
     private Icon? _dynamicIcon;
@@ -35,8 +38,14 @@ public partial class App : System.Windows.Application
         _window.RefreshRequested += (_, _) => _ = RefreshAsync();
         _window.ViewModel.QuotaRecovered += (_, recovered) => ShowRecoveryNotification(recovered);
         _window.ViewModel.AppearanceChanged += (_, _) => UpdateTrayIcon();
+        _window.InstallUpdateRequested += (_, _) => InstallUpdate();
 
         var menu = new Forms.ContextMenuStrip();
+        _updateMenuItem = new Forms.ToolStripMenuItem("Reiniciar para actualizar", null, (_, _) => InstallUpdate())
+        {
+            Visible = false,
+        };
+        menu.Items.Add(_updateMenuItem);
         menu.Items.Add("Abrir", null, (_, _) => ShowWindow());
         menu.Items.Add("Actualizar", null, (_, _) => _ = RefreshAsync());
         menu.Items.Add("Personalizar…", null, (_, _) =>
@@ -76,6 +85,21 @@ public partial class App : System.Windows.Application
         _clockTimer.Tick += (_, _) => _window?.ViewModel.RefreshTimeLabels();
         _clockTimer.Start();
 
+        if (_updater.IsInstalled)
+        {
+            // First check shortly after startup, then every six hours.
+            _updateTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromSeconds(30),
+            };
+            _updateTimer.Tick += (_, _) =>
+            {
+                _updateTimer.Interval = TimeSpan.FromHours(6);
+                _ = CheckForUpdatesAsync();
+            };
+            _updateTimer.Start();
+        }
+
         _ = RefreshAsync();
     }
 
@@ -85,6 +109,7 @@ public partial class App : System.Windows.Application
         _clockTimer?.Stop();
         _refreshTimer?.Stop();
         _trayClickTimer?.Stop();
+        _updateTimer?.Stop();
         _notifyIcon?.Dispose();
         _normalIcon?.Dispose();
         _dynamicIcon?.Dispose();
@@ -217,6 +242,57 @@ public partial class App : System.Windows.Application
         catch (Exception)
         {
             _notifyIcon.Icon = _normalIcon;
+        }
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        if (_updater.ReadyVersion is not null)
+        {
+            return;
+        }
+
+        try
+        {
+            string? version = await _updater.CheckAndDownloadAsync(_shutdown.Token);
+            if (version is null || _window is null)
+            {
+                return;
+            }
+
+            _window.ViewModel.SetUpdateReady(version);
+            if (_updateMenuItem is not null)
+            {
+                _updateMenuItem.Text = $"Reiniciar para actualizar a {version}";
+                _updateMenuItem.Visible = true;
+            }
+            _notifyIcon?.ShowBalloonTip(
+                8000,
+                $"CodexBar {version} está lista",
+                "Reiniciá CodexBar desde la ventana o el menú de la bandeja para instalarla.",
+                Forms.ToolTipIcon.None);
+        }
+        catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
+        {
+        }
+        catch (Exception)
+        {
+            // Offline, rate-limited or no published releases: try again on the next tick.
+        }
+    }
+
+    private void InstallUpdate()
+    {
+        try
+        {
+            if (_updater.ApplyAfterExit())
+            {
+                ExitApplication();
+            }
+        }
+        catch (Exception exception)
+        {
+            _window?.ViewModel.ShowStatus($"No se pudo instalar la actualización: {exception.Message}");
         }
     }
 

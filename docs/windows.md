@@ -176,6 +176,38 @@ CI can create the same ZIP in the `CodexBar-win-x64` workflow artifact, but CI i
 `Publish-Windows.ps1` creates it entirely on the build PC. The package is not signed, so Windows
 SmartScreen can display a warning.
 
+## Installer and updates
+
+Public releases are built by `.github/workflows/release-windows.yml` when a `windows-vX.Y.Z` tag is
+pushed. The workflow runs the portable Swift and engine-client tests, calls
+`Windows/Package-Release.ps1`, and publishes the output of `vpk upload github`:
+
+```text
+CodexBarWindows-win-Setup.exe      per-user installer (no administrator rights)
+CodexBarWindows-win-Portable.zip   portable folder without automatic updates
+CodexBarWindows-X.Y.Z-full.nupkg   full update package (plus -delta packages)
+releases.win.json, RELEASES        update feed consumed by installed copies
+```
+
+[Velopack](https://velopack.io) installs the application under `%LOCALAPPDATA%\CodexBarWindows`
+(pack id `CodexBarWindows`, deliberately distinct from the `%LOCALAPPDATA%\CodexBar` settings
+folder so uninstalling never deletes preferences) and bootstraps the Visual C++ 2022 x64
+redistributable required by the Swift runtime. `Program.Main` runs `VelopackApp` before WPF starts.
+Installed copies (`UpdateManager.IsInstalled`) check the GitHub Releases feed 30 seconds after
+startup and every six hours, download updates in the background, and offer a restart; pending
+updates are otherwise applied on the next launch. Portable and development builds never update.
+Updates require the repository to be public, since the app queries GitHub without a token.
+
+"Iniciar con Windows" writes a per-user `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value
+pointing at the stable `current\CodexBar.Windows.Tray.exe` path; the uninstall hook removes it.
+
+To package locally on Windows:
+
+```powershell
+dotnet tool install -g vpk --version 1.2.161
+.\Windows\Package-Release.ps1 -Version 1.0.0
+```
+
 ## Tray process boundary
 
 The tray launches the engine as a short-lived child process every five minutes or after a manual
@@ -206,8 +238,8 @@ itself.
 1. Validate the native Windows job and tray behavior on a real Windows desktop.
 2. Add Windows Credential Manager support before CodexBar owns any secrets.
 3. Add provider-CLI version detection without PTY requirements.
-4. Sign the Windows binaries and package after desktop validation.
-5. Optionally replace the user-local PowerShell installer with a signed MSIX or MSI.
+4. Sign the Windows binaries and Setup.exe (for example with SignPath or Azure Trusted Signing).
+5. Publish a winget manifest that points at the GitHub Release installer.
 6. Add fixture parity tests against the mature macOS/Linux Codex and Claude mappings.
 
 Browser cookies, WebView2, ConPTY, SQLite, and providers other than Codex and Claude Code are

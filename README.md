@@ -12,6 +12,7 @@ Muestra en el escritorio de Windows los límites de **Codex** y **Claude Code**:
 cada ventana de uso, cuándo se renueva y qué cuenta tiene cuota disponible. Funciona con varias
 cuentas por proveedor.
 
+[![Release](https://img.shields.io/github/v/release/reiterstahl/CodexBar-win?style=flat-square&color=0a0a0c&label=release)](https://github.com/reiterstahl/CodexBar-win/releases/latest)
 [![Windows 11](https://img.shields.io/badge/Windows-11%20x64-0a0a0c?style=flat-square)](#instalación)
 [![.NET 10](https://img.shields.io/badge/.NET-10%20LTS-512bd4?style=flat-square)](Windows/global.json)
 [![Upstream](https://img.shields.io/badge/upstream-steipete%2FCodexBar-d9d900?style=flat-square)](https://github.com/steipete/CodexBar)
@@ -78,33 +79,33 @@ cuentas por proveedor.
 ## Instalación
 
 ### Requisitos
-- Windows 11 x64.
+- Windows 11 de 64 bits.
 - [Codex CLI](https://learn.chatgpt.com/docs/codex) y/o [Claude Code](https://code.claude.com)
   instalados y con sesión iniciada.
-- Si Windows avisa que falta el runtime de Visual C++, instalá el
-  [Visual C++ Redistributable x64](https://aka.ms/vs/17/release/vc_redist.x64.exe).
 
-El paquete incluye los runtimes de .NET y Swift, así que la PC de destino **no** necesita Swift, .NET
-SDK, Visual Studio ni Git.
+### Instalador (recomendado)
+1. Descargá **`CodexBarWindows-win-Setup.exe`** desde la
+   [última versión](https://github.com/reiterstahl/CodexBar-win/releases/latest).
+2. Ejecutalo. Se instala para tu usuario, sin permisos de administrador, crea los accesos directos y
+   abre CodexBar.
 
-### Desde el ZIP
-1. Extraé `CodexBar-Windows.zip`.
-2. En PowerShell, dentro de la carpeta extraída:
+- El instalador incluye todo lo que la app necesita (.NET y Swift). Si falta el runtime de Visual C++,
+  lo descarga e instala de Microsoft; solo en ese caso Windows pide permiso de administrador.
+- **Actualizaciones automáticas**: CodexBar revisa GitHub Releases al iniciar y cada 6 horas. Cuando
+  hay una versión nueva, la descarga en segundo plano y muestra **Reiniciar** en la ventana y en el
+  menú de la bandeja. Si no reiniciás, se instala la próxima vez que abras la app.
+- Para que arranque con Windows, activá **Iniciar con Windows** en **Personalizar**.
+- Para desinstalar, usá *Configuración → Aplicaciones → Aplicaciones instaladas → CodexBar*. Tus
+  preferencias en `%LOCALAPPDATA%\CodexBar` y las credenciales de Codex y Claude no se tocan.
 
-   ```powershell
-   powershell.exe -NoProfile -ExecutionPolicy Bypass `
-     -File .\Install-CodexBar.ps1 -DesktopShortcut -StartWithWindows
-   ```
+> Los binarios todavía no están firmados, así que SmartScreen puede mostrar *"Windows protegió tu PC"*.
+> Elegí **Más información → Ejecutar de todas formas**.
 
-El instalador verifica el hash SHA-256 de cada archivo, instala en
-`%LOCALAPPDATA%\Programs\CodexBar`, crea los accesos directos del menú Inicio y abre la app. No pide
-permisos de administrador. `-DesktopShortcut` y `-StartWithWindows` son opcionales.
+### ZIP portable
+La misma página de la versión trae **`CodexBarWindows-win-Portable.zip`**: extraelo y ejecutá
+`CodexBar.Windows.Tray.exe`. No se autoactualiza.
 
-Para usarla sin instalar: `.\Test-CodexBar.ps1 -Launch`.
-
-> El paquete todavía no está firmado, así que SmartScreen puede pedir confirmación.
-
-Hay una guía paso a paso, desde una PC nueva, en
+Hay una guía paso a paso, desde una PC nueva (instalación de los CLI y cuentas), en
 [docs/windows-installation.es.md](docs/windows-installation.es.md).
 
 ### Agregar cuentas secundarias
@@ -119,22 +120,6 @@ método no está habilitado, activalo en la configuración de seguridad de ChatG
 
 - `-ProfileName trabajo`: crea más perfiles con otro nombre.
 - `-CodexBrowserLogin`: usa el flujo que abre el navegador.
-
-### Actualizar
-Con el repositorio clonado en la PC, doble clic en **`Update-CodexBar.cmd`**. El script:
-
-1. Hace `git pull --ff-only` sobre `main`.
-2. Compila el paquete.
-3. Deja `CodexBar-Windows.zip` en el escritorio.
-4. Reinstala la app.
-
-### Desinstalar
-Usá **Uninstall CodexBar** en el menú Inicio. Se conservan las preferencias y nunca se tocan las
-credenciales de Codex ni de Claude. Para borrar también las preferencias:
-
-```powershell
-& "$env:LOCALAPPDATA\Programs\CodexBar\Uninstall-CodexBar.ps1" -RemoveSettings
-```
 
 ---
 
@@ -166,7 +151,7 @@ credenciales de Codex ni de Claude. Para borrar también las preferencias:
 | Motor portable | `Sources/CodexBarPortableCore`, `Sources/CodexBarWindowsEngine` | Swift con Foundation únicamente; consulta los límites y emite el snapshot JSON |
 | Cliente del motor | `Windows/CodexBar.EngineClient` | Lanza el motor, valida el esquema y descubre perfiles |
 | App de bandeja | `Windows/CodexBar.Windows.Tray` | WPF sobre .NET 10, sin dependencias externas; temas y gráficos propios (`Appearance/`, `UsageMeter`) |
-| Scripts | `Windows/*.ps1` | Publicar, instalar, actualizar, desinstalar y agregar cuentas |
+| Scripts | `Windows/*.ps1` | Empaquetar el release, publicar, instalar el ZIP, actualizar desde el código y agregar cuentas |
 
 La app de macOS y `CodexBarCore` del proyecto original siguen en el repositorio sin cambios.
 
@@ -188,12 +173,28 @@ dotnet run --project .\CodexBar.EngineClient.Tests\CodexBar.EngineClient.Tests.c
 En desarrollo, poné `CodexBarWindowsEngine.exe` junto a `CodexBar.Windows.Tray.exe` o definí
 `CODEXBAR_ENGINE_PATH`.
 
-Para generar el paquete distribuible:
+### Publicar una versión
+
+Las versiones se construyen en GitHub Actions ([release-windows.yml](.github/workflows/release-windows.yml)).
+Al pushear un tag `windows-vX.Y.Z`, el workflow compila el engine y la app, corre los tests, arma el
+instalador con [Velopack](https://velopack.io) (con deltas contra la versión anterior) y publica el
+GitHub Release del que se actualizan las copias instaladas:
+
+```bash
+git tag windows-v1.0.0
+git push origin windows-v1.0.0
+```
+
+Un tag con sufijo (`windows-v1.1.0-beta.1`) se publica como pre-release. Para probar el empaquetado
+sin publicar, ejecutá el workflow a mano (*Run workflow*) o, en Windows con `vpk` instalado:
 
 ```powershell
-.\Windows\Publish-Windows.ps1 -SkipTests -ArchiveOnly `
-  -ArchivePath "$env:USERPROFILE\Desktop\CodexBar-Windows.zip"
+dotnet tool install -g vpk --version 1.2.161
+.\Windows\Package-Release.ps1 -Version 1.0.0
 ```
+
+Para desarrollo diario, `Update-CodexBar.cmd` hace `git pull`, compila y reinstala la versión
+portable desde el repositorio clonado.
 
 Los detalles técnicos (contrato del snapshot, límites del proceso, empaquetado) están en
 [docs/windows.md](docs/windows.md).
@@ -202,7 +203,8 @@ Los detalles técnicos (contrato del snapshot, límites del proceso, empaquetado
 
 - Validación más amplia en distintos escritorios Windows.
 - Soporte de Windows Credential Manager antes de que CodexBar administre secretos propios.
-- Firma de binarios y paquete (y opcionalmente MSIX/MSI).
+- Firma de binarios e instalador para evitar la advertencia de SmartScreen.
+- Publicación en winget.
 - Tests de paridad con los mapeos maduros de Codex y Claude de macOS/Linux.
 
 Fuera de alcance por ahora: cookies de navegador, WebView2, ConPTY y proveedores distintos de Codex y

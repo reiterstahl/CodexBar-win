@@ -8,6 +8,7 @@ param(
     [string] $RuntimeIdentifier = "win-x64",
     [string] $OutputDirectory,
     [string] $ArchivePath,
+    [string] $Version,
     [switch] $SkipTests,
     [switch] $ArchiveOnly
 )
@@ -224,7 +225,7 @@ try {
     }
     New-Item -ItemType Directory -Path $publishDirectory -Force | Out-Null
 
-    Invoke-CheckedCommand -Command "dotnet.exe" -Arguments @(
+    $publishArguments = @(
         "publish",
         "Windows\CodexBar.Windows.Tray\CodexBar.Windows.Tray.csproj",
         "--configuration", $Configuration,
@@ -234,6 +235,10 @@ try {
         "-p:PublishProfile=win-x64",
         "-p:PublishTrimmed=false"
     )
+    if (-not [string]::IsNullOrWhiteSpace($Version)) {
+        $publishArguments += "-p:Version=$Version"
+    }
+    Invoke-CheckedCommand -Command "dotnet.exe" -Arguments $publishArguments
 
     if (Test-Path -LiteralPath $OutputDirectory) {
         Remove-Item -LiteralPath $OutputDirectory -Recurse -Force

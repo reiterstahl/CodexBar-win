@@ -1,0 +1,154 @@
+name: Release Windows
+
+# Push a tag such as `windows-v1.0.0` to build Setup.exe with Velopack and publish it as a
+# GitHub Release. Installed copies of CodexBar check these releases for updates.
+# Manual runs build the packages as a workflow artifact without publishing.
+on:
+  push:
+    tags:
+      - "windows-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version to build (for example 1.0.0). Manual runs do not publish."
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SWIFT_VERSION: 6.3.3
+  # Keep in sync with the Velopack PackageReference in CodexBar.Windows.Tray.csproj.
+  VELOPACK_VERSION: 1.2.161
+
+jobs:
+  release:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          $version = if ($env:EVENT_NAME -eq "push") { $env:REF_NAME -replace '^windows-v', '' } else { $env:INPUT_VERSION }
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
+            throw "Invalid semantic version: $version"
+          }
+          "value=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "prerelease=$($version.Contains('-').ToString().ToLowerInvariant())" |
+            Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Install Swift toolchain
+        shell: pwsh
+        run: |
+          if (-not (Get-Command swift -ErrorAction SilentlyContinue)) {
+            winget install --id Swift.Toolchain --exact --version $env:SWIFT_VERSION --silent `
+              --accept-package-agreements --accept-source-agreements
+            $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
+              [Environment]::GetEnvironmentVariable("Path", "User")
+          }
+          $swift = Get-Command swift -ErrorAction Stop
+          $swiftDirectory = Split-Path $swift.Source
+          $swiftPathEntries = @(
+            $env:Path -split ";" |
+              Where-Object { $_ -match "[\\/]Swift[\\/]" -and (Test-Path -LiteralPath $_) }
+            $swiftDirectory
+          ) | Select-Object -Unique
+          $swiftPathEntries |
+            Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          $sdkRoot = [Environment]::GetEnvironmentVariable("SDKROOT", "Machine")
+          if ([string]::IsNullOrWhiteSpace($sdkRoot)) {
+            $sdkRoot = [Environment]::GetEnvironmentVariable("SDKROOT", "User")
+          }
+          if ([string]::IsNullOrWhiteSpace($sdkRoot) -or
+              -not (Test-Path -LiteralPath $sdkRoot)) {
+            $swiftRoot = (Get-Item -LiteralPath $swiftDirectory).Parent.Parent.Parent.Parent.FullName
+            $sdkRoot = Get-ChildItem -LiteralPath (Join-Path $swiftRoot "Platforms") -Directory |
+              Sort-Object -Property LastWriteTimeUtc -Descending |
+              ForEach-Object {
+                Join-Path $_.FullName "Windows.platform\Developer\SDKs\Windows.sdk"
+              } |
+              Where-Object { Test-Path -LiteralPath $_ } |
+              Select-Object -First 1
+          }
+          if ([string]::IsNullOrWhiteSpace($sdkRoot) -or
+              -not (Test-Path -LiteralPath $sdkRoot)) {
+            throw "The Swift Windows SDK could not be found."
+          }
+          "SDKROOT=$sdkRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          swift --version
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
+        with:
+          global-json-file: Windows/global.json
+
+      - name: Install Velopack CLI
+        shell: pwsh
+        run: |
+          dotnet tool install -g vpk --version $env:VELOPACK_VERSION
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Download previous release for delta updates
+        if: github.event_name == 'push'
+        shell: pwsh
+        env:
+          VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          # The first release has nothing to download; packing still produces a full package.
+          vpk download github --repoUrl $env:REPO_URL --outputDir artifacts/windows/releases
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "No previous release was downloaded; continuing without deltas."
+            $global:LASTEXITCODE = 0
+          }
+
+      - name: Test, build and package
+        shell: pwsh
+        run: .\Windows\Package-Release.ps1 -Version "${{ steps.version.outputs.value }}"
+
+      - name: Upload packages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: CodexBar-windows-${{ steps.version.outputs.value }}
+          path: artifacts/windows/releases
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push'
+        shell: pwsh
+        env:
+          VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.value }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        run: |
+          $arguments = @(
+            "upload", "github",
+            "--repoUrl", $env:REPO_URL,
+            "--outputDir", "artifacts/windows/releases",
+            "--tag", $env:TAG,
+            "--releaseName", "CodexBar para Windows $env:VERSION",
+            "--publish"
+          )
+          if ($env:PRERELEASE -eq "true") {
+            $arguments += "--pre"
+          }
+          vpk @arguments
+          if ($LASTEXITCODE -ne 0) {
+            throw "vpk upload exited with code $LASTEXITCODE."
+          }

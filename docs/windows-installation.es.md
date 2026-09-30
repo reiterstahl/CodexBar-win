@@ -1,8 +1,10 @@
 # Instalación de CodexBar en una PC nueva
 
-Esta guía instala CodexBar en Windows 11 x64 a partir del archivo
-`CodexBar-Windows.zip`. La PC de destino no necesita Swift, .NET SDK,
-Visual Studio, Git ni el repositorio del proyecto.
+Esta guía instala CodexBar en Windows 11 x64 con el instalador
+`CodexBarWindows-win-Setup.exe` de la
+[última versión](https://github.com/reiterstahl/CodexBar-win/releases/latest).
+La PC de destino no necesita Swift, .NET SDK, Visual Studio, Git ni el
+repositorio del proyecto.
 
 CodexBar no incluye ni transfiere credenciales. Codex CLI y Claude Code
 administran sus propias sesiones, por lo que cada cuenta debe autenticarse
@@ -12,13 +14,10 @@ nuevamente en la PC nueva.
 
 - Windows 11 de 64 bits.
 - Una conexión a Internet para instalar los CLI y autenticar las cuentas.
-- `CodexBar-Windows.zip`.
-- Opcionalmente, `CodexBar-Windows.zip.sha256` para verificar la transferencia.
+- `CodexBarWindows-win-Setup.exe`, o bien el ZIP portable (ver la sección 4).
 
-CodexBar incluye los runtimes de .NET y Swift que necesita. Si Windows informa
-que falta un runtime de Microsoft Visual C++, instala el
-[Microsoft Visual C++ Redistributable x64](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-y vuelve a intentarlo.
+CodexBar incluye los runtimes de .NET y Swift que necesita. Si falta el runtime
+de Microsoft Visual C++, el instalador lo descarga e instala automáticamente.
 
 ## 2. Instalar Codex CLI
 
@@ -81,49 +80,36 @@ claude
 Completa el acceso en el navegador. Si no aparece automáticamente, escribe
 `/login`. Cuando termine la autenticación, escribe `/exit`.
 
-## 4. Extraer e instalar CodexBar
+## 4. Instalar CodexBar
 
-Copia `CodexBar-Windows.zip` a la PC nueva. Si también recibiste el archivo
-`.sha256`, puedes mostrar el hash descargado con:
+Descarga `CodexBarWindows-win-Setup.exe` y ejecútalo. El instalador:
 
-```powershell
-(Get-FileHash .\CodexBar-Windows.zip -Algorithm SHA256).Hash.ToLowerInvariant()
-Get-Content .\CodexBar-Windows.zip.sha256
-```
+- instala CodexBar solo para el usuario actual, sin permisos de administrador;
+- instala el runtime de Visual C++ si falta (solo entonces Windows pide
+  permiso);
+- crea accesos directos en Inicio y Escritorio;
+- abre CodexBar en el área de notificación.
 
-Los dos valores deben coincidir. Después, desbloquea y extrae el ZIP:
+Como los binarios aún no están firmados, SmartScreen puede mostrar *Windows
+protegió tu PC*: elige **Más información → Ejecutar de todas formas**.
 
-```powershell
-Unblock-File .\CodexBar-Windows.zip
+Para que CodexBar arranque con Windows, activa **Iniciar con Windows** en
+**Personalizar**.
 
-$setupDirectory = Join-Path $env:TEMP `
-  ("CodexBar-Setup-" + [guid]::NewGuid().ToString("N"))
+### Alternativa: ZIP portable
 
-Expand-Archive `
-  -Path .\CodexBar-Windows.zip `
-  -DestinationPath $setupDirectory
-```
+La página de la versión también ofrece `CodexBarWindows-win-Portable.zip`.
+Extráelo en cualquier carpeta y ejecuta `CodexBar.Windows.Tray.exe`. Esta
+variante no se actualiza sola.
 
-Instala CodexBar con acceso directo de Escritorio e inicio automático:
+El paquete que genera `Publish-Windows.ps1` (ver *Crear el ZIP transferible*)
+sigue incluyendo `Install-CodexBar.ps1`, que instala en
+`%LOCALAPPDATA%\Programs\CodexBar` con verificación de hashes:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File "$setupDirectory\Install-CodexBar.ps1" `
-  -DesktopShortcut `
-  -StartWithWindows
+  -File .\Install-CodexBar.ps1 -DesktopShortcut -StartWithWindows
 ```
-
-El instalador:
-
-- verifica todos los hashes internos del paquete;
-- prueba el motor sin consultar las cuentas;
-- instala en `%LOCALAPPDATA%\Programs\CodexBar`;
-- crea accesos directos en Inicio y Escritorio;
-- registra el inicio automático solo para el usuario actual;
-- inicia CodexBar en el área de notificación.
-
-No necesita permisos de administrador. Los parámetros `-DesktopShortcut` y
-`-StartWithWindows` son opcionales.
 
 ## 5. Añadir las cuentas secundarias
 
@@ -230,7 +216,15 @@ imprime tokens ni contraseñas.
 
 ## 7. Actualizar CodexBar
 
-### Actualización completa con una sola orden
+### Actualización automática
+
+Si instalaste con `Setup.exe`, CodexBar revisa GitHub Releases al iniciar y
+cada 6 horas. Cuando hay una versión nueva, la descarga en segundo plano y
+muestra **Reiniciar** en la ventana y **Reiniciar para actualizar** en el menú
+de la bandeja. Si no reinicias, la versión nueva se instala la próxima vez que
+abras la aplicación. Se conservan cuentas, nombres y preferencias.
+
+### Desde el código fuente (desarrollo)
 
 En la PC de compilación, el script `Update-CodexBar.ps1` actualiza `main`,
 genera el ZIP, lo extrae temporalmente, reinstala CodexBar con acceso directo
@@ -280,10 +274,12 @@ No es necesario volver a autenticar.
 
 ## 8. Desinstalar
 
-Usa **Uninstall CodexBar** en el menú Inicio. Esto elimina la aplicación y los
-accesos directos, pero conserva preferencias y credenciales.
+Si instalaste con `Setup.exe`, usa *Configuración → Aplicaciones → Aplicaciones
+instaladas → CodexBar → Desinstalar*. Se elimina la aplicación y el inicio con
+Windows, pero se conservan las preferencias en `%LOCALAPPDATA%\CodexBar`.
 
-Para eliminar también las preferencias visuales de CodexBar:
+Si instalaste con `Install-CodexBar.ps1`, usa **Uninstall CodexBar** en el menú
+Inicio. Para eliminar también las preferencias visuales:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `

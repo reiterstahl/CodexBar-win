@@ -9,7 +9,21 @@
     <ApplicationIcon>Assets\CodexBar.ico</ApplicationIcon>
     <!-- The UI is Spanish; skip the other localized WPF/WinForms runtime resources. -->
     <SatelliteResourceLanguages>es</SatelliteResourceLanguages>
+    <!-- Velopack must run before WPF starts, so the entry point is Program.Main. -->
+    <StartupObject>CodexBar.Windows.Tray.Program</StartupObject>
+    <!-- Release builds override this with -p:Version from the windows-v* tag. -->
+    <Version>0.0.0-dev</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Keep in sync with VELOPACK_VERSION in .github/workflows/release-windows.yml. -->
+    <PackageReference Include="Velopack" Version="1.2.161" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CodexBar.EngineClient\CodexBar.EngineClient.csproj" />

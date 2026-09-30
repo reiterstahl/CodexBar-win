@@ -63,6 +63,8 @@ public partial class MainWindow : Window
 
     public event EventHandler? RefreshRequested;
 
+    public event EventHandler? InstallUpdateRequested;
+
     public MainWindowViewModel ViewModel { get; }
 
     public void ShowCustomization()
@@ -205,6 +207,11 @@ public partial class MainWindow : Window
         {
             ViewModel.DismissRecoveryAlert(provider);
         }
+    }
+
+    private void InstallUpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        InstallUpdateRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void CustomizeButton_Click(object sender, RoutedEventArgs e)
