@@ -52,6 +52,8 @@ window, when it resets, and which account still has quota. Works with several ac
   in addition to the primary accounts.
 - Each account is queried in its own short-lived process, so one failing account never affects the
   others.
+- **Add accounts from the app**: in Customize → Accounts, one button per provider builds the sign-in
+  command for a new profile.
 - Click an account name to rename it.
 - When an account loses its session, its card shows **Copy login**, which copies the PowerShell
   command to sign in to that specific profile. The command contains no credentials.
@@ -128,7 +130,12 @@ Spanish at [docs/windows-installation.es.md](docs/windows-installation.es.md).
 
 ### Adding secondary accounts
 
-Download [`Add-CodexBarAccounts.ps1`](Windows/Add-CodexBarAccounts.ps1) (it is also included in the ZIP
+The easiest way: in **Customize → Accounts**, select **Add Codex account** or **Add Claude Code account**.
+CodexBar picks the next free profile (`.codex-2`, `.codex-3`, …), copies the PowerShell sign-in command,
+and offers **Open in PowerShell** to run it directly. When you finish, select **Refresh** and the new
+account appears.
+
+You can also create profiles with the script: download [`Add-CodexBarAccounts.ps1`](Windows/Add-CodexBarAccounts.ps1) (it is also included in the ZIP
 built by `Publish-Windows.ps1`) and run it:
 
 ```powershell

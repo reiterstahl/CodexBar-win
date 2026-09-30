@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- Nueva sección **Cuentas** en Personalizar: botones para agregar cuentas de Codex o Claude Code.
+  Eligen el siguiente perfil libre, copian el comando de PowerShell para iniciar sesión y permiten
+  abrirlo directo en PowerShell.
+- "Copiar login" de las tarjetas usa el mismo comando, ahora con instrucciones en el idioma de la app.
+
 ## 1.1.0
 
 - La app está disponible en inglés. Nueva opción **Idioma** en Personalizar: Automático (según el

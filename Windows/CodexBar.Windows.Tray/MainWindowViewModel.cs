@@ -681,23 +681,8 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         ? null
         : _palette.Brush(CardBackground.Mix(PillColor, 0.16));
 
-    public string LoginCommand => Profile.Provider switch
-    {
-        "codex" => string.Join(
-            Environment.NewLine,
-            $"$env:CODEX_HOME = {PowerShellLiteral(Profile.ConfigDirectory)}",
-            "codex login --device-auth",
-            "codex login status",
-            "Remove-Item Env:CODEX_HOME"),
-        "claude" => string.Join(
-            Environment.NewLine,
-            $"$env:CLAUDE_CONFIG_DIR = {PowerShellLiteral(Profile.ConfigDirectory)}",
-            "Write-Host 'When Claude asks for the code, paste with right-click or Shift+Insert. The code may remain invisible.'",
-            "claude auth login",
-            "claude auth status",
-            "Remove-Item Env:CLAUDE_CONFIG_DIR"),
-        _ => string.Empty,
-    };
+    public string LoginCommand =>
+        LoginCommandBuilder.Build(Profile.Provider, Profile.ConfigDirectory, createDirectory: false);
 
     private ViewMode View => _options?.View ?? ViewMode.Cards;
 
@@ -799,11 +784,6 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
     private void RaiseAll()
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
-    }
-
-    private static string PowerShellLiteral(string value)
-    {
-        return $"'{value.Replace("'", "''")}'";
     }
 
     public static ProviderCardViewModel FromSnapshot(

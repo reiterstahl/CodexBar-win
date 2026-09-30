@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Reflection;
+using CodexBar.EngineClient;
 using Brush = System.Windows.Media.Brush;
 
 namespace CodexBar.Windows.Tray;
@@ -59,6 +60,8 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
 {
     private readonly AppSettingsStore _store;
     private readonly MainWindowViewModel _owner;
+    private string? _pendingCommand;
+    private string? _pendingDirectory;
 
     public CustomizationViewModel(AppSettingsStore store, MainWindowViewModel owner)
     {
@@ -188,6 +191,29 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
             }
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StartWithWindows)));
         }
+    }
+
+    public bool HasPendingAccount => _pendingCommand is not null;
+
+    public string PendingCommand => _pendingCommand ?? string.Empty;
+
+    public string PendingAccountMessage => _pendingDirectory is null
+        ? string.Empty
+        : Loc.F(
+            "AccountCommandReady",
+            LoginCommandBuilder.DisplayPath(
+                _pendingDirectory,
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+
+    /// <summary>Picks the next free isolated profile and builds its sign-in command.</summary>
+    public string PrepareNewAccount(string provider)
+    {
+        _pendingDirectory = ProviderProfileDiscovery.NextAdditionalDirectory(provider);
+        _pendingCommand = LoginCommandBuilder.Build(provider, _pendingDirectory, createDirectory: true);
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasPendingAccount)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PendingCommand)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PendingAccountMessage)));
+        return _pendingCommand;
     }
 
     public string SettingsLocation => Path.Combine("%LOCALAPPDATA%", "CodexBar", "settings.json");

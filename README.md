@@ -54,6 +54,8 @@ cuentas por proveedor.
   además de las cuentas principales.
 - Cada cuenta se consulta en un proceso independiente y de corta duración, así que el fallo de una
   cuenta no afecta a las demás.
+- **Agregar cuentas desde la app**: en Personalizar → Cuentas, un botón por proveedor genera el comando de
+  inicio de sesión para un perfil nuevo.
 - Clic sobre el nombre de una cuenta para renombrarla.
 - Si una cuenta perdió la sesión, su tarjeta muestra **Copiar login**, que copia el comando de
   PowerShell para autenticar ese perfil en particular. El comando no contiene credenciales.
@@ -131,7 +133,12 @@ Hay una guía paso a paso, desde una PC nueva (instalación de los CLI y cuentas
 
 ### Agregar cuentas secundarias
 
-Descargá [`Add-CodexBarAccounts.ps1`](Windows/Add-CodexBarAccounts.ps1) (también viene en el ZIP que genera
+La forma más fácil: en **Personalizar → Cuentas**, tocá **Agregar cuenta de Codex** o **Agregar cuenta de
+Claude Code**. CodexBar elige el siguiente perfil libre (`.codex-2`, `.codex-3`, …), copia el comando de
+PowerShell para iniciar sesión y te ofrece **Abrir en PowerShell** para ejecutarlo directo. Al terminar,
+tocá **Actualizar** y la cuenta nueva aparece.
+
+También podés crear perfiles con el script: descargá [`Add-CodexBarAccounts.ps1`](Windows/Add-CodexBarAccounts.ps1) (también viene en el ZIP que genera
 `Publish-Windows.ps1`) y ejecutalo:
 
 ```powershell

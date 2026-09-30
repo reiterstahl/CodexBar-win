@@ -20,6 +20,8 @@ var tests = new (string Name, Action Run)[]
     ("translates every string into both languages", TranslatesEveryString),
     ("defines every key used by the XAML views", DefinesEveryXamlKey),
     ("resolves the automatic language from Windows", ResolvesAutomaticLanguage),
+    ("picks the next free account profile", PicksNextFreeAccountProfile),
+    ("builds sign-in commands for new accounts", BuildsSignInCommands),
 };
 
 foreach ((string name, Action run) in tests)
@@ -291,6 +293,51 @@ static void ResolvesAutomaticLanguage()
     Assert(Loc.Resolve("auto", CultureInfo.GetCultureInfo("fr-FR")) == Loc.English, "Expected English fallback.");
     Assert(Loc.Resolve("es", CultureInfo.GetCultureInfo("en-US")) == Loc.Spanish, "Expected an explicit choice to win.");
     Assert(Loc.Resolve("en", CultureInfo.GetCultureInfo("es-CR")) == Loc.English, "Expected an explicit choice to win.");
+}
+
+static void PicksNextFreeAccountProfile()
+{
+    string root = Path.Combine(Path.GetTempPath(), $"codexbar-accounts-{Guid.NewGuid():N}");
+    try
+    {
+        Directory.CreateDirectory(root);
+        Assert(ProviderProfileDiscovery.NextAdditionalDirectory("codex", root) == Path.Combine(root, ".codex-2"),
+            "Expected .codex-2 when no secondary profile exists.");
+
+        Directory.CreateDirectory(Path.Combine(root, ".codex-2"));
+        File.WriteAllText(Path.Combine(root, ".codex-2", "auth.json"), "{}");
+        Directory.CreateDirectory(Path.Combine(root, ".codex-3"));
+        Assert(ProviderProfileDiscovery.NextAdditionalDirectory("codex", root) == Path.Combine(root, ".codex-3"),
+            "Expected an unfinished .codex-3 to be reused.");
+
+        Directory.CreateDirectory(Path.Combine(root, ".claude-2"));
+        File.WriteAllText(Path.Combine(root, ".claude-2", ".credentials.json"), "{}");
+        Assert(ProviderProfileDiscovery.NextAdditionalDirectory("claude", root) == Path.Combine(root, ".claude-3"),
+            "Expected .claude-3 after a signed-in .claude-2.");
+        AssertThrows(() => ProviderProfileDiscovery.NextAdditionalDirectory("gemini", root),
+            "Expected unsupported providers to be rejected.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void BuildsSignInCommands()
+{
+    string codex = LoginCommandBuilder.Build("codex", @"C:\Users\O'Brien\.codex-3", createDirectory: true);
+    Assert(codex.Contains("New-Item -ItemType Directory -Force -Path 'C:\\Users\\O''Brien\\.codex-3'"),
+        "Expected the profile folder to be created with an escaped path.");
+    Assert(codex.Contains("$env:CODEX_HOME = 'C:\\Users\\O''Brien\\.codex-3'"), "Expected CODEX_HOME for the profile.");
+    Assert(codex.Contains("codex login --device-auth") && codex.Contains("Remove-Item Env:CODEX_HOME"),
+        "Expected device-code login and cleanup.");
+
+    string claude = LoginCommandBuilder.Build("claude", @"C:\Users\ana\.claude-2", createDirectory: false);
+    Assert(!claude.Contains("New-Item"), "Expected existing profiles not to be recreated.");
+    Assert(claude.Contains("claude auth login") && claude.Contains("Remove-Item Env:CLAUDE_CONFIG_DIR"),
+        "Expected Claude Code login and cleanup.");
+    Assert(LoginCommandBuilder.DisplayPath(@"C:\Users\ana\.claude-2", @"C:\Users\ana") == @"%USERPROFILE%\.claude-2",
+        "Expected a %USERPROFILE%-relative display path.");
 }
 
 static string SourceDirectory([CallerFilePath] string path = "") => Path.GetDirectoryName(path)!;

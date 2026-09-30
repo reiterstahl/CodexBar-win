@@ -80,6 +80,34 @@ public static class ProviderProfileDiscovery
         return new ProviderProfile(provider, label, Path.GetFullPath(directory));
     }
 
+    /// <summary>
+    /// First isolated profile directory without credentials (".codex-2", ".codex-3", ...), so a
+    /// half-finished sign-in is reused instead of leaving empty folders behind.
+    /// </summary>
+    public static string NextAdditionalDirectory(string provider, string? userProfile = null)
+    {
+        (string prefix, string credentialFileName) = provider switch
+        {
+            "codex" => (".codex", "auth.json"),
+            "claude" => (".claude", ".credentials.json"),
+            _ => throw new EngineClientException($"Unsupported provider profile '{provider}'."),
+        };
+        userProfile ??= Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (string.IsNullOrWhiteSpace(userProfile))
+        {
+            throw new EngineClientException("The Windows user profile directory could not be resolved.");
+        }
+
+        for (int index = 2; ; index++)
+        {
+            string directory = Path.GetFullPath(Path.Combine(userProfile, $"{prefix}-{index}"));
+            if (!File.Exists(Path.Combine(directory, credentialFileName)))
+            {
+                return directory;
+            }
+        }
+    }
+
     private static void AddAdditionalProfiles(
         List<ProviderProfile> profiles,
         string profileRoot,

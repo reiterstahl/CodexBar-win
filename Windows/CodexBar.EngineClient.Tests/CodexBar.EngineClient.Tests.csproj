@@ -10,6 +10,7 @@
     <Compile Include="..\CodexBar.Windows.Tray\Appearance\ThemeCatalog.cs" Link="Appearance\ThemeCatalog.cs" />
     <Compile Include="..\CodexBar.Windows.Tray\Appearance\UsageMath.cs" Link="Appearance\UsageMath.cs" />
     <Compile Include="..\CodexBar.Windows.Tray\Localization\Loc.cs" Link="Localization\Loc.cs" />
+    <Compile Include="..\CodexBar.Windows.Tray\Accounts\LoginCommandBuilder.cs" Link="Accounts\LoginCommandBuilder.cs" />
   </ItemGroup>
 
   <ItemGroup>

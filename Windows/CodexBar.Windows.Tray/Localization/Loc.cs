@@ -200,6 +200,29 @@ public sealed class Loc : INotifyPropertyChanged
             ["StartWithWindows"] = ("Iniciar con Windows", "Start with Windows"),
             ["StartWithWindowsHint"] = ("Abre CodexBar en el área de notificación al iniciar sesión", "Opens CodexBar in the notification area when you sign in"),
 
+            // Accounts
+            ["SectionAccounts"] = ("CUENTAS", "ACCOUNTS"),
+            ["AccountsHint"] = (
+                "Crea un perfil aislado y genera el comando de PowerShell para iniciar sesión. Tus cuentas actuales no cambian.",
+                "Creates an isolated profile and the PowerShell command to sign in. Your current accounts are not changed."),
+            ["AddCodexAccount"] = ("Agregar cuenta de Codex", "Add Codex account"),
+            ["AddClaudeAccount"] = ("Agregar cuenta de Claude Code", "Add Claude Code account"),
+            ["AccountCommandReady"] = (
+                "Comando copiado para el perfil {0}. Pegalo en PowerShell con clic derecho y seguí las instrucciones; al terminar, tocá Actualizar.",
+                "Command copied for profile {0}. Paste it in PowerShell with right-click and follow the prompts; when done, select Refresh."),
+            ["CopyCommand"] = ("Copiar", "Copy"),
+            ["RunInPowerShell"] = ("Abrir en PowerShell", "Open in PowerShell"),
+            ["RunInPowerShellTip"] = (
+                "Abre una ventana de PowerShell que ejecuta este comando",
+                "Opens a PowerShell window that runs this command"),
+            ["CommandCopied"] = ("Comando copiado", "Command copied"),
+            ["CodexLoginHint"] = (
+                "Codex mostrará una URL y un código: abrí la URL en el navegador de la cuenta correcta e ingresá el código.",
+                "Codex will show a URL and a code: open the URL in the browser profile of the right account and enter the code."),
+            ["ClaudeLoginHint"] = (
+                "Cuando Claude pida el código, pegalo con clic derecho o Shift+Insert. Puede no verse al pegarlo.",
+                "When Claude asks for the code, paste it with right-click or Shift+Insert. It may stay invisible."),
+
             // Option labels
             ["ChartBar"] = ("Barras", "Bars"),
             ["ChartRing"] = ("Anillos", "Rings"),

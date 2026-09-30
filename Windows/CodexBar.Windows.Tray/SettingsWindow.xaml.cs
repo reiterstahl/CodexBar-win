@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using Forms = System.Windows.Forms;
@@ -76,6 +78,70 @@ public partial class SettingsWindow : Window
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private void AddCodexAccountButton_Click(object sender, RoutedEventArgs e)
+    {
+        PrepareAccount("codex");
+    }
+
+    private void AddClaudeAccountButton_Click(object sender, RoutedEventArgs e)
+    {
+        PrepareAccount("claude");
+    }
+
+    private void PrepareAccount(string provider)
+    {
+        try
+        {
+            CopyToClipboard(_viewModel.Customization.PrepareNewAccount(provider));
+        }
+        catch (Exception exception)
+        {
+            _viewModel.ShowStatus(exception.Message);
+        }
+    }
+
+    private void CopyPendingCommandButton_Click(object sender, RoutedEventArgs e)
+    {
+        CopyToClipboard(_viewModel.Customization.PendingCommand);
+    }
+
+    private void RunPendingCommandButton_Click(object sender, RoutedEventArgs e)
+    {
+        string command = _viewModel.Customization.PendingCommand;
+        if (command.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            // -EncodedCommand avoids any quoting issues; the window stays open for the sign-in prompts.
+            var startInfo = new ProcessStartInfo("powershell.exe") { UseShellExecute = false };
+            startInfo.ArgumentList.Add("-NoExit");
+            startInfo.ArgumentList.Add("-NoProfile");
+            startInfo.ArgumentList.Add("-EncodedCommand");
+            startInfo.ArgumentList.Add(Convert.ToBase64String(Encoding.Unicode.GetBytes(command)));
+            Process.Start(startInfo)?.Dispose();
+        }
+        catch (Exception exception)
+        {
+            _viewModel.ShowStatus(exception.Message);
+        }
+    }
+
+    private void CopyToClipboard(string text)
+    {
+        try
+        {
+            System.Windows.Clipboard.SetText(text);
+            _viewModel.ShowStatus(Loc.T("CommandCopied"));
+        }
+        catch (Exception)
+        {
+            _viewModel.ShowStatus(Loc.T("LoginCopyFailed"));
+        }
     }
 
     private void PickAccentButton_Click(object sender, RoutedEventArgs e)

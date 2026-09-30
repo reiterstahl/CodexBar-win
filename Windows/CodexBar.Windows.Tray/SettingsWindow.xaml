@@ -163,7 +163,91 @@
                     <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}" />
                 </ScrollViewer.Resources>
                 <StackPanel Margin="20,16,20,18">
-                    <TextBlock Style="{StaticResource SectionLabelStyle}" Text="{local:Tr SectionTheme}" />
+                    <TextBlock Style="{StaticResource SectionLabelStyle}" Text="{local:Tr SectionAccounts}" />
+                    <TextBlock
+                        Margin="0,-4,0,10"
+                        Style="{StaticResource SettingHintStyle}"
+                        Text="{local:Tr AccountsHint}" />
+                    <UniformGrid Rows="1">
+                        <Button
+                            Margin="0,0,6,0"
+                            Padding="10,9"
+                            HorizontalContentAlignment="Left"
+                            Click="AddCodexAccountButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse
+                                    Width="10"
+                                    Height="10"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"
+                                    Fill="{DynamicResource CodexBrush}" />
+                                <TextBlock FontSize="13" Text="{local:Tr AddCodexAccount}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Button>
+                        <Button
+                            Margin="6,0,0,0"
+                            Padding="10,9"
+                            Click="AddClaudeAccountButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse
+                                    Width="10"
+                                    Height="10"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"
+                                    Fill="{DynamicResource ClaudeBrush}" />
+                                <TextBlock FontSize="13" Text="{local:Tr AddClaudeAccount}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
+                    <Border
+                        Margin="0,10,0,0"
+                        Padding="12"
+                        Background="{DynamicResource RaisedBrush}"
+                        BorderBrush="{DynamicResource AccentBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Visibility="{Binding Customization.HasPendingAccount, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="12"
+                                Text="{Binding Customization.PendingAccountMessage}"
+                                TextWrapping="Wrap" />
+                            <TextBox
+                                Margin="0,10,0,0"
+                                Padding="8,6"
+                                Background="{DynamicResource AppBackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                FontFamily="Cascadia Mono, Consolas"
+                                FontSize="11"
+                                IsReadOnly="True"
+                                Text="{Binding Customization.PendingCommand, Mode=OneWay}"
+                                TextWrapping="Wrap" />
+                            <StackPanel
+                                Margin="0,10,0,0"
+                                HorizontalAlignment="Right"
+                                Orientation="Horizontal">
+                                <Button
+                                    Margin="0,0,8,0"
+                                    Padding="12,5"
+                                    Click="CopyPendingCommandButton_Click"
+                                    Content="{local:Tr CopyCommand}"
+                                    FontSize="12" />
+                                <Button
+                                    Padding="12,5"
+                                    Click="RunPendingCommandButton_Click"
+                                    Content="{local:Tr RunInPowerShell}"
+                                    FontSize="12"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    ToolTip="{local:Tr RunInPowerShellTip}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock
+                        Margin="0,18,0,10"
+                        Style="{StaticResource SectionLabelStyle}"
+                        Text="{local:Tr SectionTheme}" />
                     <ItemsControl ItemsSource="{Binding Customization.Themes}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
