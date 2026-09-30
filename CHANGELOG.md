@@ -5,6 +5,7 @@
 - La app está disponible en inglés. Nueva opción **Idioma** en Personalizar: Automático (según el
   idioma de Windows), Español o English. Cambia al instante, sin reiniciar.
 - Capturas del README en ambos idiomas.
+- Política de privacidad en el README y metadatos de producto en el ejecutable.
 
 ## 1.0.2
 
