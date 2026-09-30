@@ -13,6 +13,11 @@
     <StartupObject>CodexBar.Windows.Tray.Program</StartupObject>
     <!-- Release builds override this with -p:Version from the windows-v* tag. -->
     <Version>0.0.0-dev</Version>
+    <!-- File metadata shown by Windows and checked by code-signing policies. -->
+    <Product>CodexBar</Product>
+    <AssemblyTitle>CodexBar</AssemblyTitle>
+    <Company>CodexBar for Windows contributors</Company>
+    <Copyright>Copyright (c) 2026 Peter Steinberger and CodexBar for Windows contributors</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

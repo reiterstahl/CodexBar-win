@@ -161,6 +161,17 @@ Los comandos para revisar, cerrar o rehacer la sesión de cada perfil a mano est
   de esquema conocida.
 - Nunca muestra stderr ni salidas malformadas del motor, para no exponer datos sensibles en la interfaz.
 
+### Política de privacidad
+
+CodexBar no tiene telemetría ni analíticas, y no envía datos a servidores propios. Solo se conecta a:
+
+- `chatgpt.com`, para consultar los límites de Codex con la sesión del Codex CLI.
+- `api.anthropic.com` y `platform.claude.com`, para consultar los límites de Claude Code y renovar su
+  token con la sesión de Claude Code.
+- `github.com`, para buscar actualizaciones de CodexBar (solo en la versión instalada con Setup.exe).
+
+Las credenciales solo se envían al proveedor que las emitió. Nada más sale de tu PC.
+
 ---
 
 ## Arquitectura

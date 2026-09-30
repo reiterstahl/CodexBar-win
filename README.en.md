@@ -158,6 +158,17 @@ Commands to check, sign out of, or redo each profile's session manually are in
   a known schema version.
 - It never displays the engine's stderr or malformed output, so sensitive data cannot leak into the UI.
 
+### Privacy policy
+
+CodexBar has no telemetry or analytics and sends no data to servers of its own. It only connects to:
+
+- `chatgpt.com`, to read Codex limits with the Codex CLI session.
+- `api.anthropic.com` and `platform.claude.com`, to read Claude Code limits and refresh its token with
+  the Claude Code session.
+- `github.com`, to check for CodexBar updates (only in the version installed with Setup.exe).
+
+Credentials are only sent to the provider that issued them. Nothing else leaves your PC.
+
 ---
 
 ## Architecture
