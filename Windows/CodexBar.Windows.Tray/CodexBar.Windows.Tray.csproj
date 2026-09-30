@@ -31,6 +31,5 @@
 
   <ItemGroup>
     <Resource Include="Assets\CodexBar.ico" />
-    <Resource Include="Assets\CodexBarIcon.png" />
   </ItemGroup>
 </Project>

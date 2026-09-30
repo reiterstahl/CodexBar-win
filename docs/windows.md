@@ -16,12 +16,13 @@ The Windows port starts with a deliberately small engine that supports two provi
 - Codex, using the OAuth credentials owned by the Codex CLI.
 - Claude Code, using the OAuth credentials owned by the Claude CLI.
 
-The existing macOS application and full `CodexBarCore` remain unchanged. Windows uses
+This repository keeps only the Windows port; the macOS app and the full `CodexBarCore` live in the
+[original project](https://github.com/steipete/CodexBar). Windows uses
 `CodexBarPortableCore` and `CodexBarWindowsEngine`, which depend only on Foundation and
 FoundationNetworking. They do not import AppKit, SwiftUI, Security, WebKit, SweetCookieKit,
 SQLite, POSIX process APIs, or browser-cookie code.
 
-The native tray shell lives under `Windows/`. It is a dependency-free WPF application targeting
+The native tray shell lives under `Windows/`. It is a WPF application targeting
 .NET 10 LTS. `CodexBar.EngineClient` owns process execution and schema validation, while
 `CodexBar.Windows.Tray` only owns presentation, refresh scheduling, and tray interactions.
 

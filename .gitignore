@@ -1,7 +1,6 @@
 # Xcode user/session
 xcuserdata/
 .swiftpm/xcode/xcshareddata/
-.codexbar/config.json
 *.env
 *.local
 
@@ -12,25 +11,9 @@ Windows/**/bin/
 Windows/**/obj/
 artifacts/
 
-# Bundles / artifacts
-# Main app bundle (any variation)
-CodexBar.app/
-CodexBar *.app/
-CodexBar_*.app/
-Codexbar.app/
 # Release artifacts
-*.ipa
-*.dSYM*
-*.xcarchive/
-*.xcresult/
 *.zip
-*.delta
-*.dmg
-*.pkg
-*.tar.gz
-*.tgz
-Icon.iconset
-debug_*.swift
+*.nupkg
 
 # Misc
 .DS_Store
@@ -39,12 +22,3 @@ debug_*.swift
 .swiftpm-cache/
 .tmp-clang/
 __pycache__/
-
-# Debug/analysis docs
-docs/*-analysis.md
-docs/.viewport-audit/
-docs/.astro/
-
-# Swift Package Manager metadata (leave sources tracked)
-# Packages/
-# Package.resolved

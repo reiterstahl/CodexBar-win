@@ -153,7 +153,8 @@ método no está habilitado, activalo en la configuración de seguridad de ChatG
 | App de bandeja | `Windows/CodexBar.Windows.Tray` | WPF sobre .NET 10, sin dependencias externas; temas y gráficos propios (`Appearance/`, `UsageMeter`) |
 | Scripts | `Windows/*.ps1` | Empaquetar el release, publicar, instalar el ZIP, actualizar desde el código y agregar cuentas |
 
-La app de macOS y `CodexBarCore` del proyecto original siguen en el repositorio sin cambios.
+Este repositorio contiene solo el port de Windows. La app de macOS, el CLI y los demás proveedores
+siguen en el [proyecto original](https://github.com/steipete/CodexBar).
 
 ## Compilar desde el código
 

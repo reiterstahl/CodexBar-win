@@ -128,7 +128,7 @@ contraseñas ni tokens.
 En la PC de compilación, desde el repositorio:
 
 ```powershell
-cd $env:USERPROFILE\source\CodexBar-win
+cd "$env:USERPROFILE\source\CodexBar-win"
 git pull origin main
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
