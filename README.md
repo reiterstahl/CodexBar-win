@@ -4,6 +4,8 @@
 
 <h1 align="center">CodexBar para Windows</h1>
 
+<p align="center"><b>Español</b> · <a href="README.en.md">English</a></p>
+
 > [!IMPORTANT]
 > **Este proyecto es un fork de [steipete/CodexBar](https://github.com/steipete/CodexBar)**, creado por
 > [Peter Steinberger](https://github.com/steipete). La idea, el nombre, la arquitectura de proveedores y
@@ -21,6 +23,19 @@ cuentas por proveedor.
 [![.NET 10](https://img.shields.io/badge/.NET-10%20LTS-512bd4?style=flat-square)](Windows/global.json)
 [![Upstream](https://img.shields.io/badge/upstream-steipete%2FCodexBar-d9d900?style=flat-square)](https://github.com/steipete/CodexBar)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6e5aff?style=flat-square)](LICENSE)
+
+<p align="center">
+  <img src="docs/images/tarjetas.png" width="400" alt="Vista Tarjetas con tema Grafito: cuatro cuentas con barras de sesión y semanal, marcador de ritmo y una cuenta agotada">
+  &nbsp;
+  <img src="docs/images/personalizar.png" width="400" alt="Ventana Personalizar con temas, colores de acento, tipos de gráfico, vista, densidad, tamaño y comportamiento">
+</p>
+<p align="center">
+  <img src="docs/images/resumen.png" width="620" alt="Vista Resumen con tema Medianoche y gráficos de anillos coloreados por nivel de cuota">
+</p>
+<p align="center">
+  <img src="docs/images/mini.png" width="380" alt="Vista Mini con tema Claro y medidores coloreados por proveedor">
+</p>
+<p align="center"><sub>Tarjetas y Personalizar (Grafito, barras) · Resumen (Medianoche, anillos por nivel) · Mini (Claro, medidor por proveedor). Cuentas ficticias.</sub></p>
 
 ---
 
@@ -115,6 +130,9 @@ Hay una guía paso a paso, desde una PC nueva (instalación de los CLI y cuentas
 
 ### Agregar cuentas secundarias
 
+Descargá [`Add-CodexBarAccounts.ps1`](Windows/Add-CodexBarAccounts.ps1) (también viene en el ZIP que genera
+`Publish-Windows.ps1`) y ejecutalo:
+
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Add-CodexBarAccounts.ps1 -Login
 ```
@@ -125,6 +143,9 @@ método no está habilitado, activalo en la configuración de seguridad de ChatG
 
 - `-ProfileName trabajo`: crea más perfiles con otro nombre.
 - `-CodexBrowserLogin`: usa el flujo que abre el navegador.
+
+Los comandos para revisar, cerrar o rehacer la sesión de cada perfil a mano están en
+[docs/windows-account-commands.es.md](docs/windows-account-commands.es.md).
 
 ---
 
@@ -155,7 +176,8 @@ método no está habilitado, activalo en la configuración de seguridad de ChatG
 | --- | --- | --- |
 | Motor portable | `Sources/CodexBarPortableCore`, `Sources/CodexBarWindowsEngine` | Swift con Foundation únicamente; consulta los límites y emite el snapshot JSON |
 | Cliente del motor | `Windows/CodexBar.EngineClient` | Lanza el motor, valida el esquema y descubre perfiles |
-| App de bandeja | `Windows/CodexBar.Windows.Tray` | WPF sobre .NET 10, sin dependencias externas; temas y gráficos propios (`Appearance/`, `UsageMeter`) |
+| App de bandeja | `Windows/CodexBar.Windows.Tray` | WPF sobre .NET 10; temas y gráficos propios (`Appearance/`, `UsageMeter`) y [Velopack](https://velopack.io) para instalar y actualizar |
+| Engine de demo | `Windows/Tools/CodexBar.DemoEngine` | Cuentas ficticias para las capturas del README ([screenshots.yml](.github/workflows/screenshots.yml)) |
 | Scripts | `Windows/*.ps1` | Empaquetar el release, publicar, instalar el ZIP, actualizar desde el código y agregar cuentas |
 
 Este repositorio contiene solo el port de Windows. La app de macOS, el CLI y los demás proveedores
