@@ -174,6 +174,9 @@ public sealed class AppSettings
 
     public bool DynamicTrayIcon { get; set; } = true;
 
+    /// <summary>"auto" (follow Windows), "es" or "en".</summary>
+    public string? Language { get; set; }
+
     public void Normalize()
     {
         AccountNames = new Dictionary<string, string>(
@@ -198,6 +201,7 @@ public sealed class AppSettings
         ChartKind = ThemeCatalog.FormatOption(ThemeCatalog.ParseOption(ChartKind, Tray.ChartKind.Bar));
         ColorMode = ThemeCatalog.FormatOption(ThemeCatalog.ParseOption(ColorMode, ChartColorMode.Accent));
         Density = ThemeCatalog.FormatOption(ThemeCatalog.ParseOption(Density, Tray.Density.Comfortable));
+        Language = Language is Loc.Spanish or Loc.English ? Language : Loc.Automatic;
     }
 
     public void ResetAppearance()

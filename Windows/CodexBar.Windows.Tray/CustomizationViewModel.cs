@@ -6,7 +6,7 @@ using Brush = System.Windows.Media.Brush;
 namespace CodexBar.Windows.Tray;
 
 /// <summary>One selectable choice in the customization panel (theme tile, swatch, segment).</summary>
-public sealed class OptionViewModel(string value, string label, Action select) : INotifyPropertyChanged
+public sealed class OptionViewModel(string value, Func<string> label, Action select) : INotifyPropertyChanged
 {
     private bool _isSelected;
 
@@ -14,7 +14,8 @@ public sealed class OptionViewModel(string value, string label, Action select) :
 
     public string Value { get; } = value;
 
-    public string Label { get; } = label;
+    /// <summary>Re-evaluated on every language change.</summary>
+    public string Label => label();
 
     public RelayCommand SelectCommand { get; } = new(select);
 
@@ -67,30 +68,37 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
         Accents = ThemeCatalog.Accents
             .Select(accent => new OptionViewModel(
                 accent.Hex,
-                accent.Name,
+                () => Loc.T(accent.NameKey),
                 () => SetAccent(accent.Hex))
             {
                 Swatch = Frozen(RgbColor.Parse(accent.Hex)),
             })
             .ToArray();
         Charts = Choices(
-            [(ChartKind.Bar, "Barras"), (ChartKind.Ring, "Anillos"), (ChartKind.Gauge, "Medidor"),
-                (ChartKind.Blocks, "Bloques"), (ChartKind.Numbers, "Números")],
+            [(ChartKind.Bar, "ChartBar"), (ChartKind.Ring, "ChartRing"), (ChartKind.Gauge, "ChartGauge"),
+                (ChartKind.Blocks, "ChartBlocks"), (ChartKind.Numbers, "ChartNumbers")],
             value => Change(settings => settings.ChartKind = value));
         ColorModes = Choices(
-            [(ChartColorMode.Accent, "Acento"), (ChartColorMode.Level, "Por nivel"), (ChartColorMode.Provider, "Proveedor")],
+            [(ChartColorMode.Accent, "ColorAccent"), (ChartColorMode.Level, "ColorLevel"), (ChartColorMode.Provider, "ColorProvider")],
             value => Change(settings => settings.ColorMode = value));
         PercentModes =
         [
-            new OptionViewModel("available", "Disponible", () => Change(settings => settings.ShowUsedPercent = false)),
-            new OptionViewModel("used", "Usado", () => Change(settings => settings.ShowUsedPercent = true)),
+            new OptionViewModel("available", () => Loc.T("PercentAvailable"), () => Change(settings => settings.ShowUsedPercent = false)),
+            new OptionViewModel("used", () => Loc.T("PercentUsed"), () => Change(settings => settings.ShowUsedPercent = true)),
         ];
         Views = Choices(
-            [(ViewMode.Cards, "Tarjetas"), (ViewMode.Summary, "Resumen"), (ViewMode.Mini, "Mini")],
+            [(ViewMode.Cards, "ViewCards"), (ViewMode.Summary, "ViewSummary"), (ViewMode.Mini, "ViewMini")],
             value => Change(settings => settings.ViewMode = value));
         Densities = Choices(
-            [(Density.Comfortable, "Cómoda"), (Density.Compact, "Compacta")],
+            [(Density.Comfortable, "DensityComfortable"), (Density.Compact, "DensityCompact")],
             value => Change(settings => settings.Density = value));
+        // Language names stay in their own language so they can always be found.
+        Languages =
+        [
+            new OptionViewModel(Loc.Automatic, () => Loc.T("LanguageAuto"), () => Change(settings => settings.Language = Loc.Automatic)),
+            new OptionViewModel(Loc.Spanish, () => "Español", () => Change(settings => settings.Language = Loc.Spanish)),
+            new OptionViewModel(Loc.English, () => "English", () => Change(settings => settings.Language = Loc.English)),
+        ];
         ResetCommand = new RelayCommand(() => Change(settings => settings.ResetAppearance()));
         Refresh();
     }
@@ -110,6 +118,8 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
     public IReadOnlyList<OptionViewModel> Views { get; }
 
     public IReadOnlyList<OptionViewModel> Densities { get; }
+
+    public IReadOnlyList<OptionViewModel> Languages { get; }
 
     public RelayCommand ResetCommand { get; }
 
@@ -182,7 +192,7 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
 
     public string SettingsLocation => Path.Combine("%LOCALAPPDATA%", "CodexBar", "settings.json");
 
-    public string FooterText => $"CodexBar {AppVersion} · Se guarda en {SettingsLocation}";
+    public string FooterText => Loc.F("SettingsFooter", AppVersion, SettingsLocation);
 
     public static string AppVersion
     {
@@ -241,6 +251,12 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
         Select(PercentModes, settings.ShowUsedPercent ? "used" : "available");
         Select(Views, settings.ViewMode);
         Select(Densities, settings.Density);
+        Select(Languages, settings.Language);
+        foreach (OptionViewModel option in Accents.Concat(Charts).Concat(ColorModes).Concat(PercentModes)
+            .Concat(Views).Concat(Densities).Concat(Languages))
+        {
+            option.RaisePreviewChanged();
+        }
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
     }
 
@@ -259,7 +275,7 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
     }
 
     private static OptionViewModel[] Choices<TEnum>(
-        (TEnum Value, string Label)[] choices,
+        (TEnum Value, string LabelKey)[] choices,
         Action<string> apply)
         where TEnum : struct, Enum
     {
@@ -267,14 +283,15 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
             .Select(choice =>
             {
                 string value = ThemeCatalog.FormatOption(choice.Value);
-                return new OptionViewModel(value, choice.Label, () => apply(value));
+                return new OptionViewModel(value, () => Loc.T(choice.LabelKey), () => apply(value));
             })
             .ToArray();
     }
 
     private OptionViewModel CreateThemeOption(ThemeDefinition theme)
     {
-        return new OptionViewModel(theme.Id, theme.Name, () => Change(settings => settings.Theme = theme.Id))
+        string labelKey = "Theme" + char.ToUpperInvariant(theme.Id[0]) + theme.Id[1..];
+        return new OptionViewModel(theme.Id, () => Loc.T(labelKey), () => Change(settings => settings.Theme = theme.Id))
         {
             PreviewBackground = Frozen(RgbColor.Parse(theme.Background)),
             PreviewFrame = Frozen(RgbColor.Parse(theme.Border)),

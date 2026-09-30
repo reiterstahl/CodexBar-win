@@ -46,23 +46,34 @@ jobs:
           function Key([string] $provider, [string] $folder) {
             ("$provider|" + [IO.Path]::GetFullPath((Join-Path $env:USERPROFILE $folder))).ToUpperInvariant()
           }
-          $names = @{
-            (Key "codex" ".codex") = "Codex · Personal"
-            (Key "codex" ".codex-2") = "Codex · Trabajo"
-            (Key "claude" ".claude") = "Claude · Max"
-            (Key "claude" ".claude-2") = "Claude · Personal"
+          $accountNames = @{
+            es = @{
+              (Key "codex" ".codex") = "Codex · Personal"
+              (Key "codex" ".codex-2") = "Codex · Trabajo"
+              (Key "claude" ".claude") = "Claude · Max"
+              (Key "claude" ".claude-2") = "Claude · Personal"
+            }
+            en = @{
+              (Key "codex" ".codex") = "Codex · Personal"
+              (Key "codex" ".codex-2") = "Codex · Work"
+              (Key "claude" ".claude") = "Claude · Max"
+              (Key "claude" ".claude-2") = "Claude · Side"
+            }
           }
           $settingsPath = Join-Path $env:LOCALAPPDATA "CodexBar\settings.json"
           New-Item -ItemType Directory -Force -Path (Split-Path $settingsPath) | Out-Null
 
-          $shots = @(
-            @{ name = "tarjetas"; viewMode = "cards"; theme = "grafito"; chartKind = "bar"; colorMode = "accent"; settings = "1" },
-            @{ name = "resumen"; viewMode = "summary"; theme = "medianoche"; chartKind = "ring"; colorMode = "level"; settings = "0" },
-            @{ name = "mini"; viewMode = "mini"; theme = "claro"; chartKind = "gauge"; colorMode = "provider"; settings = "0" }
-          )
+          # Spanish files keep their original names; English files get an -en suffix.
+          $shots = foreach ($language in @("es", "en")) {
+            $suffix = if ($language -eq "en") { "-en" } else { "" }
+            @{ name = "tarjetas$suffix"; language = $language; viewMode = "cards"; theme = "grafito"; chartKind = "bar"; colorMode = "accent"; settings = "personalizar$suffix" }
+            @{ name = "resumen$suffix"; language = $language; viewMode = "summary"; theme = "medianoche"; chartKind = "ring"; colorMode = "level"; settings = "0" }
+            @{ name = "mini$suffix"; language = $language; viewMode = "mini"; theme = "claro"; chartKind = "gauge"; colorMode = "provider"; settings = "0" }
+          }
           foreach ($shot in $shots) {
             @{
-              accountNames = $names
+              accountNames = $accountNames[$shot.language]
+              language = $shot.language
               viewMode = $shot.viewMode
               theme = $shot.theme
               chartKind = $shot.chartKind
@@ -89,7 +100,9 @@ jobs:
           }
 
           Get-ChildItem $output | Format-Table Name, Length
-          $expected = @("tarjetas.png", "resumen.png", "mini.png", "personalizar.png")
+          $expected = foreach ($suffix in @("", "-en")) {
+            "tarjetas$suffix.png", "resumen$suffix.png", "mini$suffix.png", "personalizar$suffix.png"
+          }
           foreach ($file in $expected) {
             if (-not (Test-Path (Join-Path $output $file))) { throw "Missing $file" }
           }

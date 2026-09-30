@@ -18,6 +18,11 @@ public partial class App : System.Windows.Application
     private DispatcherTimer? _trayClickTimer;
     private DispatcherTimer? _updateTimer;
     private Forms.ToolStripMenuItem? _updateMenuItem;
+    private Forms.ToolStripMenuItem? _openMenuItem;
+    private Forms.ToolStripMenuItem? _refreshMenuItem;
+    private Forms.ToolStripMenuItem? _customizeMenuItem;
+    private Forms.ToolStripMenuItem? _exitMenuItem;
+    private IReadOnlyList<ProviderProfileResult> _lastResults = [];
     private readonly AppUpdater _updater = new();
     private Forms.NotifyIcon? _notifyIcon;
     private Icon? _normalIcon;
@@ -37,24 +42,32 @@ public partial class App : System.Windows.Application
         _ = new WindowInteropHelper(_window).EnsureHandle();
         _window.RefreshRequested += (_, _) => _ = RefreshAsync();
         _window.ViewModel.QuotaRecovered += (_, recovered) => ShowRecoveryNotification(recovered);
-        _window.ViewModel.AppearanceChanged += (_, _) => UpdateTrayIcon();
+        _window.ViewModel.AppearanceChanged += (_, _) =>
+        {
+            UpdateTrayTexts();
+            UpdateTrayIcon();
+        };
         _window.InstallUpdateRequested += (_, _) => InstallUpdate();
 
         var menu = new Forms.ContextMenuStrip();
-        _updateMenuItem = new Forms.ToolStripMenuItem("Reiniciar para actualizar", null, (_, _) => InstallUpdate())
+        _updateMenuItem = new Forms.ToolStripMenuItem(string.Empty, null, (_, _) => InstallUpdate())
         {
             Visible = false,
         };
-        menu.Items.Add(_updateMenuItem);
-        menu.Items.Add("Abrir", null, (_, _) => ShowWindow());
-        menu.Items.Add("Actualizar", null, (_, _) => _ = RefreshAsync());
-        menu.Items.Add("Personalizar…", null, (_, _) =>
+        _openMenuItem = new Forms.ToolStripMenuItem(string.Empty, null, (_, _) => ShowWindow());
+        _refreshMenuItem = new Forms.ToolStripMenuItem(string.Empty, null, (_, _) => _ = RefreshAsync());
+        _customizeMenuItem = new Forms.ToolStripMenuItem(string.Empty, null, (_, _) =>
         {
             ShowWindow();
             _window?.ShowCustomization();
         });
+        _exitMenuItem = new Forms.ToolStripMenuItem(string.Empty, null, (_, _) => ExitApplication());
+        menu.Items.Add(_updateMenuItem);
+        menu.Items.Add(_openMenuItem);
+        menu.Items.Add(_refreshMenuItem);
+        menu.Items.Add(_customizeMenuItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Salir", null, (_, _) => ExitApplication());
+        menu.Items.Add(_exitMenuItem);
 
         _notifyIcon = new Forms.NotifyIcon
         {
@@ -63,6 +76,7 @@ public partial class App : System.Windows.Application
             Text = "CodexBar",
             Visible = true,
         };
+        UpdateTrayTexts();
         _notifyIcon.MouseClick += (_, eventArgs) =>
         {
             if (eventArgs.Button == Forms.MouseButtons.Left)
@@ -174,7 +188,7 @@ public partial class App : System.Windows.Application
                 ? new ProviderFailure(
                     profile.Provider,
                     "missing_result",
-                    $"{profile.Label} no devolvió información de uso.")
+                    Loc.F("NoUsageInfo", profile.Label))
                 : null;
             return new ProviderProfileResult(
                 profile,
@@ -203,12 +217,31 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        int accountCount = results.Count(result => result.Snapshot is not null);
+        _lastResults = results;
+        UpdateTrayTexts();
+        UpdateTrayIcon();
+    }
+
+    private void UpdateTrayTexts()
+    {
+        if (_notifyIcon is null)
+        {
+            return;
+        }
+
+        int accountCount = _lastResults.Count(result => result.Snapshot is not null);
         int availableCount = _window?.ViewModel.Providers.Count(card => card.HasQuota) ?? 0;
         _notifyIcon.Text = accountCount == 0
-            ? "CodexBar — cuentas no disponibles"
-            : $"CodexBar — {availableCount} de {accountCount} con cuota";
-        UpdateTrayIcon();
+            ? Loc.T("TrayNoAccounts")
+            : Loc.F("TraySummary", availableCount, accountCount);
+        _openMenuItem!.Text = Loc.T("TrayOpen");
+        _refreshMenuItem!.Text = Loc.T("Refresh");
+        _customizeMenuItem!.Text = Loc.T("TrayCustomize");
+        _exitMenuItem!.Text = Loc.T("TrayExit");
+        if (_updater.ReadyVersion is string version)
+        {
+            _updateMenuItem!.Text = Loc.F("TrayRestartToUpdate", version);
+        }
     }
 
     private void UpdateTrayIcon()
@@ -264,11 +297,11 @@ public partial class App : System.Windows.Application
             ShowWindow();
             await Task.Delay(TimeSpan.FromSeconds(1.5));
             ScreenshotCapture.Save(_window, Path.Combine(directory, $"{ScreenshotCapture.Name}.png"));
-            if (ScreenshotCapture.IncludeCustomization)
+            if (ScreenshotCapture.CustomizationName is string customizationName)
             {
                 SettingsWindow settings = _window.ShowCustomization();
                 await Task.Delay(TimeSpan.FromSeconds(1.5));
-                ScreenshotCapture.Save(settings, Path.Combine(directory, "personalizar.png"));
+                ScreenshotCapture.Save(settings, Path.Combine(directory, $"{customizationName}.png"));
             }
         }
         finally
@@ -295,13 +328,13 @@ public partial class App : System.Windows.Application
             _window.ViewModel.SetUpdateReady(version);
             if (_updateMenuItem is not null)
             {
-                _updateMenuItem.Text = $"Reiniciar para actualizar a {version}";
+                _updateMenuItem.Text = Loc.F("TrayRestartToUpdate", version);
                 _updateMenuItem.Visible = true;
             }
             _notifyIcon?.ShowBalloonTip(
                 8000,
-                $"CodexBar {version} está lista",
-                "Reiniciá CodexBar desde la ventana o el menú de la bandeja para instalarla.",
+                Loc.F("UpdateReadyTitle", version),
+                Loc.T("UpdateReadyBody"),
                 Forms.ToolTipIcon.None);
         }
         catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
@@ -324,7 +357,7 @@ public partial class App : System.Windows.Application
         }
         catch (Exception exception)
         {
-            _window?.ViewModel.ShowStatus($"No se pudo instalar la actualización: {exception.Message}");
+            _window?.ViewModel.ShowStatus(Loc.F("UpdateFailed", exception.Message));
         }
     }
 
@@ -337,7 +370,7 @@ public partial class App : System.Windows.Application
 
         _notifyIcon.ShowBalloonTip(
             8000,
-            $"{recovered.DisplayName} ya tiene cuota",
+            Loc.F("RecoveredTitle", recovered.DisplayName),
             recovered.Detail,
             Forms.ToolTipIcon.None);
     }

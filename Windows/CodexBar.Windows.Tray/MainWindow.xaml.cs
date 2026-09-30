@@ -149,11 +149,11 @@ public partial class MainWindow : Window
         try
         {
             System.Windows.Clipboard.SetText(provider.LoginCommand);
-            ViewModel.ShowStatus($"Login copiado para {provider.DisplayName}. Pegalo en PowerShell.");
+            ViewModel.ShowStatus(Loc.F("LoginCopied", provider.DisplayName));
         }
         catch (Exception)
         {
-            ViewModel.ShowStatus("No se pudo copiar el login. Intentá de nuevo.");
+            ViewModel.ShowStatus(Loc.T("LoginCopyFailed"));
         }
     }
 

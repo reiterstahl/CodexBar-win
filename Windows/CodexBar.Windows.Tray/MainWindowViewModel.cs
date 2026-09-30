@@ -46,6 +46,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _uiScale = settingsStore.Settings.UiScale;
         _palette = AppearancePalette.Create(settingsStore.Settings);
         _options = ReadOptions(settingsStore.Settings);
+        Loc.Instance.SetLanguage(settingsStore.Settings.Language);
         Customization = new CustomizationViewModel(settingsStore, this);
         SelectViewCommand = new ViewCommands(this);
     }
@@ -83,7 +84,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _ => 520,
     };
 
-    public string RefreshButtonLabel => _isRefreshing ? "Actualizando…" : "Actualizar";
+    public string RefreshButtonLabel => Loc.T(_isRefreshing ? "Refreshing" : "Refresh");
 
     public string Status
     {
@@ -91,7 +92,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             if (_isRefreshing)
             {
-                return "Actualizando…";
+                return Loc.T("Refreshing");
             }
 
             if (_transientStatus is not null)
@@ -101,13 +102,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
             if (_lastUpdated is not DateTimeOffset updated)
             {
-                return "Iniciando…";
+                return Loc.T("StatusStarting");
             }
 
             int minutes = (int)Math.Floor((DateTimeOffset.Now - updated).TotalMinutes);
-            string age = minutes < 1 ? "hace un momento" : $"hace {minutes} min";
+            string age = minutes < 1 ? Loc.T("AgeJustNow") : Loc.F("AgeMinutes", minutes);
             int available = _cards.Count(card => card.HasQuota);
-            return $"Actualizado {age} · {available} de {_cards.Count} con cuota";
+            return Loc.F("StatusUpdated", age, available, _cards.Count);
         }
     }
 
@@ -118,13 +119,15 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             ProviderCardViewModel? next = NextRecovery();
             if (next?.ExhaustedWindow?.ResetsAt is DateTimeOffset resetsAt)
             {
-                return $"Próxima cuota: {next.DisplayName} en " +
-                    UsageMath.FormatDuration(resetsAt - DateTimeOffset.Now);
+                return Loc.F(
+                    "FooterNext",
+                    next.DisplayName,
+                    UsageMath.FormatDuration(resetsAt - DateTimeOffset.Now));
             }
 
-            return _cards.Count > 0 && _cards.All(card => card.HasQuota)
-                ? "Todas las cuentas tienen cuota"
-                : "Consulta automática cada 5 min";
+            return Loc.T(_cards.Count > 0 && _cards.All(card => card.HasQuota)
+                ? "FooterAllAvailable"
+                : "FooterAuto");
         }
     }
 
@@ -136,7 +139,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public string UpdateText => _updateVersion is null
         ? string.Empty
-        : $"CodexBar {_updateVersion} está lista para instalar";
+        : Loc.F("UpdateReady", _updateVersion);
 
     public bool CanRefresh => !_isRefreshing;
 
@@ -198,6 +201,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         _palette = AppearancePalette.Create(_settingsStore.Settings);
         _options = ReadOptions(_settingsStore.Settings);
+        Loc.Instance.SetLanguage(_settingsStore.Settings.Language);
         if (_uiScale != _settingsStore.Settings.UiScale)
         {
             _uiScale = _settingsStore.Settings.UiScale;
@@ -218,6 +222,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsMiniView));
         OnPropertyChanged(nameof(BaseWidth));
         OnPropertyChanged(nameof(FooterDotBrush));
+        OnPropertyChanged(nameof(FooterText));
+        OnPropertyChanged(nameof(Status));
+        OnPropertyChanged(nameof(UpdateText));
+        OnPropertyChanged(nameof(RefreshButtonLabel));
         Customization.Refresh();
         AppearanceChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -327,8 +335,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             RateWindowViewModel? session = card.SessionWindow;
             string detail = session is null
-                ? "La cuota volvió a estar disponible."
-                : $"La sesión se renovó: {session.RemainingPercent:0}% libre.";
+                ? Loc.T("RecoveredGeneric")
+                : Loc.F("RecoveredSession", Math.Round(session.RemainingPercent));
             QuotaRecovered?.Invoke(this, new QuotaRecoveredEventArgs(card.DisplayName, detail));
         }
     }
@@ -488,6 +496,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 public sealed class ProviderCardViewModel : INotifyPropertyChanged
 {
     private readonly Action<ProviderProfile, string> _rename;
+    private readonly string _failureMessage;
     private string _displayName;
     private bool _isRecoveryAlertActive;
     private bool _isRecoveryPulseVisible;
@@ -509,7 +518,7 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         Profile = profile;
         _displayName = displayName;
         Subtitle = subtitle;
-        ErrorMessage = errorMessage;
+        _failureMessage = errorMessage;
         RequiresLogin = requiresLogin;
         IsExhausted = isExhausted;
         _isRecoveryAlertActive = recoveryAlertActive;
@@ -541,7 +550,9 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
 
     public string Subtitle { get; }
 
-    public string ErrorMessage { get; }
+    public string ErrorMessage => RequiresLogin
+        ? Loc.F("SessionExpired", ProviderName(Profile))
+        : _failureMessage;
 
     public bool HasError => ErrorMessage.Length > 0;
 
@@ -643,22 +654,22 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         {
             if (IsRecoveryAlertActive)
             {
-                return "Disponible otra vez";
+                return Loc.T("PillAvailableAgain");
             }
 
             if (ExhaustedWindow is RateWindowViewModel exhausted)
             {
                 return exhausted.ResetsAt is DateTimeOffset resetsAt
-                    ? $"Vuelve en {UsageMath.FormatDuration(resetsAt - DateTimeOffset.Now)}"
-                    : "Límite alcanzado";
+                    ? Loc.F("BackIn", UsageMath.FormatDuration(resetsAt - DateTimeOffset.Now))
+                    : Loc.T("LimitReached");
             }
 
             if (RequiresLogin)
             {
-                return "Sin sesión";
+                return Loc.T("NoSession");
             }
 
-            return HasError ? "Sin datos" : string.Empty;
+            return HasError ? Loc.T("NoData") : string.Empty;
         }
     }
 
@@ -831,9 +842,10 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
             "credentials_invalid" or
             "credentials_expired" or
             "unauthorized";
+        // Signed-out cards build their message from the current language on demand.
         string message = requiresLogin
-            ? $"La sesión de {ProviderName(profile)} expiró o no existe. Copiá el login y ejecutalo en PowerShell."
-            : failure?.Message ?? "No hay datos del proveedor.";
+            ? string.Empty
+            : failure?.Message ?? Loc.T("NoProviderData");
         return new ProviderCardViewModel(
             profile,
             displayName,
@@ -881,9 +893,6 @@ public sealed record WindowStyleContext(
 
 public sealed class RateWindowViewModel : INotifyPropertyChanged
 {
-    private static readonly CultureInfo SpanishCulture =
-        CultureInfo.GetCultureInfo("es-CR");
-
     private readonly string _label;
     private WindowStyleContext? _style;
 
@@ -923,8 +932,8 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
         {
             string name = Id.ToLowerInvariant() switch
             {
-                "session" => "Sesión",
-                "weekly" => "Semanal",
+                "session" => Loc.T("WindowSession"),
+                "weekly" => Loc.T("WindowWeekly"),
                 _ => _label,
             };
             return View == ViewMode.Mini && IsSession ? $"{name} · 5 h" : name;
@@ -937,7 +946,7 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
         CultureInfo.CurrentCulture,
         $"{Math.Round(DisplayPercent):0}%");
 
-    public string PercentCaption => ShowUsed ? "usado" : "libre";
+    public string PercentCaption => Loc.T(ShowUsed ? "CaptionUsed" : "CaptionFree");
 
     public MeterKind MeterKind => Chart switch
     {
@@ -1019,22 +1028,22 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
         {
             if (ResetsAt is not DateTimeOffset resetsAt)
             {
-                return IsExhausted ? "Límite alcanzado" : "Renovación no disponible";
+                return Loc.T(IsExhausted ? "LimitReached" : "ResetUnavailable");
             }
 
             TimeSpan remaining = resetsAt - DateTimeOffset.Now;
             if (remaining <= TimeSpan.Zero)
             {
-                return "Renovando ahora";
+                return Loc.T("ResettingNow");
             }
 
             string duration = UsageMath.FormatDuration(remaining);
             if (IsExhausted)
             {
-                return $"Vuelve en {duration}";
+                return Loc.F("BackIn", duration);
             }
 
-            return View == ViewMode.Cards ? $"Se renueva en {duration}" : $"Renueva en {duration}";
+            return Loc.F(View == ViewMode.Cards ? "ResetsInLong" : "ResetsInShort", duration);
         }
     }
 
@@ -1079,23 +1088,21 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
             DateTime local = resetsAt.ToLocalTime().DateTime;
             DateTime today = DateTime.Today;
             string day = local.Date == today
-                ? "hoy"
+                ? Loc.T("Today")
                 : local.Date == today.AddDays(1)
-                    ? "mañana"
-                    : local.ToString("ddd d MMM", SpanishCulture).Replace(".", string.Empty);
-            return $"Renovación: {day} · {local.ToString("h:mm tt", SpanishCulture)}";
+                    ? Loc.T("Tomorrow")
+                    : local.ToString(Loc.T("DateShortDay"), Loc.Instance.Culture).Replace(".", string.Empty);
+            return Loc.F("ResetShort", day, local.ToString("h:mm tt", Loc.Instance.Culture));
         }
     }
 
     public string ResetDateLabel => ResetsAt is null
         ? string.Empty
-        : ResetsAt.Value.ToLocalTime().ToString(
-            "dddd d 'de' MMMM, h:mm tt",
-            SpanishCulture);
+        : ResetsAt.Value.ToLocalTime().ToString(Loc.T("DateLong"), Loc.Instance.Culture);
 
     public string Tooltip => ResetDateLabel.Length == 0
-        ? $"{Label}: renovación no disponible"
-        : $"{Label}: se renueva el {ResetDateLabel}";
+        ? Loc.F("ResetTooltipUnavailable", Label)
+        : Loc.F("ResetTooltip", Label, ResetDateLabel);
 
     public bool ShowPace => View == ViewMode.Cards &&
         _style?.Options.ShowPace == true &&
@@ -1103,9 +1110,9 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
 
     public string PaceLabel => Pace.Kind switch
     {
-        PaceKind.Exhausted => "Límite alcanzado",
-        PaceKind.RunsOut => $"Se agota en ~{UsageMath.FormatApproximate(Pace.MinutesToEmpty)} a este ritmo",
-        _ => "Al ritmo actual te alcanza",
+        PaceKind.Exhausted => Loc.T("LimitReached"),
+        PaceKind.RunsOut => Loc.F("PaceRunsOut", UsageMath.FormatApproximate(Pace.MinutesToEmpty)),
+        _ => Loc.T("PaceEnough"),
     };
 
     public Brush? PaceBrush

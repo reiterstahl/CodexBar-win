@@ -171,7 +171,7 @@
                                 FontWeight="SemiBold"
                                 MaxLength="40"
                                 Text="{Binding DisplayName, UpdateSourceTrigger=LostFocus}"
-                                ToolTip="Clic para renombrar la cuenta"
+                                ToolTip="{local:Tr RenameAccountTip}"
                                 Visibility="{Binding IsCardsView, Converter={StaticResource BooleanToVisibilityConverter}}" />
                             <TextBlock
                                 FontSize="{Binding NameFontSize}"
@@ -209,7 +209,7 @@
                             VerticalAlignment="Center"
                             Click="CopyLoginCommand_Click"
                             Style="{StaticResource AccentButtonStyle}"
-                            ToolTip="Copia el comando de PowerShell para este perfil. No incluye credenciales."
+                            ToolTip="{local:Tr CopyLoginTip}"
                             Visibility="{Binding RequiresLogin, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <StackPanel Orientation="Horizontal">
                                 <Viewbox Width="14" Height="14" Margin="0,0,6,0">
@@ -217,7 +217,7 @@
                                         <Path Data="M9,9 H20 V20 H9 Z M5,15 V6 A2,2 0 0 1 7,4 H16" Style="{StaticResource IconPathStyle}" />
                                     </Canvas>
                                 </Viewbox>
-                                <TextBlock FontSize="12" Text="Copiar login" />
+                                <TextBlock FontSize="12" Text="{local:Tr CopyLogin}" />
                             </StackPanel>
                         </Button>
                     </Grid>
@@ -302,11 +302,11 @@
                     <Border Margin="8,0,6,0" VerticalAlignment="Center" Style="{StaticResource SegmentHostStyle}">
                         <StackPanel Orientation="Horizontal">
                             <Button
-                                AutomationProperties.Name="Vista de tarjetas"
+                                AutomationProperties.Name="{local:Tr ViewCardsName}"
                                 Command="{Binding SelectViewCommand.Cards}"
                                 Style="{StaticResource ViewButtonStyle}"
                                 Tag="{Binding IsCardsView}"
-                                ToolTip="Tarjetas">
+                                ToolTip="{local:Tr ViewCards}">
                                 <Viewbox Width="15" Height="15">
                                     <Canvas Width="24" Height="24">
                                         <Path Data="M4,4 H20 V11 H4 Z M4,13 H20 V20 H4 Z" Style="{StaticResource IconPathStyle}" />
@@ -315,11 +315,11 @@
                             </Button>
                             <Button
                                 Margin="2,0"
-                                AutomationProperties.Name="Vista resumen"
+                                AutomationProperties.Name="{local:Tr ViewSummaryName}"
                                 Command="{Binding SelectViewCommand.Summary}"
                                 Style="{StaticResource ViewButtonStyle}"
                                 Tag="{Binding IsSummaryView}"
-                                ToolTip="Resumen">
+                                ToolTip="{local:Tr ViewSummary}">
                                 <Viewbox Width="15" Height="15">
                                     <Canvas Width="24" Height="24">
                                         <Path Data="M4,7 H20 M4,12 H20 M4,17 H20" Style="{StaticResource IconPathStyle}" />
@@ -327,11 +327,11 @@
                                 </Viewbox>
                             </Button>
                             <Button
-                                AutomationProperties.Name="Vista mini"
+                                AutomationProperties.Name="{local:Tr ViewMiniName}"
                                 Command="{Binding SelectViewCommand.Mini}"
                                 Style="{StaticResource ViewButtonStyle}"
                                 Tag="{Binding IsMiniView}"
-                                ToolTip="Mini">
+                                ToolTip="{local:Tr ViewMini}">
                                 <Viewbox Width="15" Height="15">
                                     <Canvas Width="24" Height="24">
                                         <Path Data="M4,4 H11 V11 H4 Z M13,4 H20 V11 H13 Z M4,13 H11 V20 H4 Z M13,13 H20 V20 H13 Z" Style="{StaticResource IconPathStyle}" />
@@ -342,10 +342,10 @@
                     </Border>
 
                     <ToggleButton
-                        AutomationProperties.Name="Siempre visible"
+                        AutomationProperties.Name="{local:Tr AlwaysOnTop}"
                         IsChecked="{Binding IsAlwaysOnTop}"
                         Style="{StaticResource IconToggleStyle}"
-                        ToolTip="Siempre visible">
+                        ToolTip="{local:Tr AlwaysOnTop}">
                         <Viewbox Width="17" Height="17">
                             <Canvas Width="24" Height="24">
                                 <Path Data="M12,16 V21 M9,3 H15 L14,9 L17,12 V16 H7 V12 L10,9 Z" Style="{StaticResource IconPathStyle}" />
@@ -353,10 +353,10 @@
                         </Viewbox>
                     </ToggleButton>
                     <Button
-                        AutomationProperties.Name="Personalizar"
+                        AutomationProperties.Name="{local:Tr Customize}"
                         Click="CustomizeButton_Click"
                         Style="{StaticResource IconButtonStyle}"
-                        ToolTip="Personalizar">
+                        ToolTip="{local:Tr Customize}">
                         <Viewbox Width="17" Height="17">
                             <Canvas Width="24" Height="24">
                                 <Path Data="M4,6 H13 M17,6 H20 M4,12 H7 M11,12 H20 M4,18 H15 M19,18 H20 M15,4 A2,2 0 1 1 15,8 A2,2 0 1 1 15,4 M9,10 A2,2 0 1 1 9,14 A2,2 0 1 1 9,10 M17,16 A2,2 0 1 1 17,20 A2,2 0 1 1 17,16" Style="{StaticResource IconPathStyle}" />
@@ -364,10 +364,10 @@
                         </Viewbox>
                     </Button>
                     <Button
-                        AutomationProperties.Name="Minimizar a la barra de tareas"
+                        AutomationProperties.Name="{local:Tr MinimizeName}"
                         Click="MinimizeButton_Click"
                         Style="{StaticResource IconButtonStyle}"
-                        ToolTip="Minimizar">
+                        ToolTip="{local:Tr Minimize}">
                         <Viewbox Width="17" Height="17">
                             <Canvas Width="24" Height="24">
                                 <Path Data="M6,12 H18" Style="{StaticResource IconPathStyle}" />
@@ -375,10 +375,10 @@
                         </Viewbox>
                     </Button>
                     <Button
-                        AutomationProperties.Name="Ocultar en el área de notificación"
+                        AutomationProperties.Name="{local:Tr HideName}"
                         Click="HideButton_Click"
                         Style="{StaticResource IconButtonStyle}"
-                        ToolTip="Ocultar">
+                        ToolTip="{local:Tr Hide}">
                         <Viewbox Width="17" Height="17">
                             <Canvas Width="24" Height="24">
                                 <Path Data="M6,6 L18,18 M18,6 L6,18" Style="{StaticResource IconPathStyle}" />
@@ -393,12 +393,12 @@
                     MinWidth="132"
                     Margin="12,0,0,0"
                     Padding="14,8"
-                    AutomationProperties.Name="Actualizar ahora"
+                    AutomationProperties.Name="{local:Tr RefreshNow}"
                     Click="RefreshButton_Click"
                     DockPanel.Dock="Right"
                     IsEnabled="{Binding CanRefresh}"
                     Style="{StaticResource RefreshButtonStyle}"
-                    ToolTip="Consulta las cuentas ahora. También se actualiza sola cada 5 minutos.">
+                    ToolTip="{local:Tr RefreshTip}">
                     <StackPanel Orientation="Horizontal">
                         <Viewbox Width="16" Height="16" Margin="0,0,8,0" RenderTransformOrigin="0.5,0.5">
                             <Viewbox.RenderTransform>
@@ -462,11 +462,11 @@
                         Margin="10,0,0,0"
                         Padding="12,4"
                         Click="InstallUpdateButton_Click"
-                        Content="Reiniciar"
+                        Content="{local:Tr Restart}"
                         DockPanel.Dock="Right"
                         FontSize="12"
                         Style="{StaticResource AccentButtonStyle}"
-                        ToolTip="Cierra CodexBar, instala la versión nueva y lo vuelve a abrir" />
+                        ToolTip="{local:Tr RestartTip}" />
                     <TextBlock
                         VerticalAlignment="Center"
                         FontSize="12"

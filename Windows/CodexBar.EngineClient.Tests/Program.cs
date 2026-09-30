@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using CodexBar.EngineClient;
 using CodexBar.Windows.Tray;
 
@@ -14,6 +17,9 @@ var tests = new (string Name, Action Run)[]
     ("projects pace until reset", ProjectsPaceUntilReset),
     ("formats countdown durations", FormatsCountdownDurations),
     ("parses stored appearance options", ParsesStoredAppearanceOptions),
+    ("translates every string into both languages", TranslatesEveryString),
+    ("defines every key used by the XAML views", DefinesEveryXamlKey),
+    ("resolves the automatic language from Windows", ResolvesAutomaticLanguage),
 };
 
 foreach ((string name, Action run) in tests)
@@ -234,6 +240,60 @@ static void ParsesStoredAppearanceOptions()
         Assert(RgbColor.Contrast(RgbColor.Parse(theme.Muted), surface) >= 4.5, $"Expected readable muted text in {theme.Name}.");
     }
 }
+
+static void TranslatesEveryString()
+{
+    var placeholder = new Regex(@"\{\d+\}");
+    foreach ((string key, (string spanish, string english)) in Loc.Strings)
+    {
+        Assert(spanish.Length > 0 && english.Length > 0, $"Expected both translations for {key}.");
+        string[] spanishArguments = placeholder.Matches(spanish).Select(match => match.Value).Order().ToArray();
+        string[] englishArguments = placeholder.Matches(english).Select(match => match.Value).Order().ToArray();
+        Assert(spanishArguments.SequenceEqual(englishArguments), $"Expected matching placeholders for {key}.");
+    }
+
+    foreach (ThemeDefinition theme in ThemeCatalog.Themes)
+    {
+        string key = "Theme" + char.ToUpperInvariant(theme.Id[0]) + theme.Id[1..];
+        Assert(Loc.Strings.ContainsKey(key), $"Expected a translated name for theme {theme.Id}.");
+    }
+
+    foreach (AccentPreset accent in ThemeCatalog.Accents)
+    {
+        Assert(Loc.Strings.ContainsKey(accent.NameKey), $"Expected a translated name for accent {accent.Hex}.");
+    }
+}
+
+static void DefinesEveryXamlKey()
+{
+    string trayDirectory = Path.Combine(SourceDirectory(), "..", "CodexBar.Windows.Tray");
+    string[] views = Directory.GetFiles(trayDirectory, "*.xaml");
+    Assert(views.Length > 0, "Expected to find the tray XAML views.");
+    var usage = new Regex(@"\{local:Tr (\w+)\}");
+    int keys = 0;
+    foreach (string view in views)
+    {
+        foreach (Match match in usage.Matches(File.ReadAllText(view)))
+        {
+            keys++;
+            Assert(Loc.Strings.ContainsKey(match.Groups[1].Value),
+                $"{Path.GetFileName(view)} uses the missing key {match.Groups[1].Value}.");
+        }
+    }
+    Assert(keys > 20, "Expected the XAML views to use translated strings.");
+}
+
+static void ResolvesAutomaticLanguage()
+{
+    Assert(Loc.Resolve("auto", CultureInfo.GetCultureInfo("es-CR")) == Loc.Spanish, "Expected Spanish for es-CR.");
+    Assert(Loc.Resolve(null, CultureInfo.GetCultureInfo("es-ES")) == Loc.Spanish, "Expected Spanish for es-ES.");
+    Assert(Loc.Resolve("auto", CultureInfo.GetCultureInfo("en-US")) == Loc.English, "Expected English for en-US.");
+    Assert(Loc.Resolve("auto", CultureInfo.GetCultureInfo("fr-FR")) == Loc.English, "Expected English fallback.");
+    Assert(Loc.Resolve("es", CultureInfo.GetCultureInfo("en-US")) == Loc.Spanish, "Expected an explicit choice to win.");
+    Assert(Loc.Resolve("en", CultureInfo.GetCultureInfo("es-CR")) == Loc.English, "Expected an explicit choice to win.");
+}
+
+static string SourceDirectory([CallerFilePath] string path = "") => Path.GetDirectoryName(path)!;
 
 static void Assert(bool condition, string message)
 {

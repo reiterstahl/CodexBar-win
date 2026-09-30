@@ -44,7 +44,8 @@ public sealed record ThemeDefinition(
 
 public sealed record StatusColors(RgbColor Ok, RgbColor Warn, RgbColor Critical);
 
-public sealed record AccentPreset(string Hex, string Name);
+/// <param name="NameKey">Localization key for the accent name.</param>
+public sealed record AccentPreset(string Hex, string NameKey);
 
 /// <summary>Built-in themes and the defaults the customization panel restores.</summary>
 public static class ThemeCatalog
@@ -65,12 +66,12 @@ public static class ThemeCatalog
 
     public static IReadOnlyList<AccentPreset> Accents { get; } =
     [
-        new("#D9D900", "Amarillo CodexBar"),
-        new("#4F8CFF", "Azul"),
-        new("#2BC4A3", "Verde agua"),
-        new("#FF7A45", "Naranja"),
-        new("#B388FF", "Lila"),
-        new("#FF5C8A", "Rosa"),
+        new("#D9D900", "AccentYellow"),
+        new("#4F8CFF", "AccentBlue"),
+        new("#2BC4A3", "AccentTeal"),
+        new("#FF7A45", "AccentOrange"),
+        new("#B388FF", "AccentPurple"),
+        new("#FF5C8A", "AccentPink"),
     ];
 
     public static ThemeDefinition Find(string? id)

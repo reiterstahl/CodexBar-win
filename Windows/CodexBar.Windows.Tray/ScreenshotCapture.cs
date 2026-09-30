@@ -24,8 +24,11 @@ internal static class ScreenshotCapture
             ? name
             : "main";
 
-    public static bool IncludeCustomization =>
-        Environment.GetEnvironmentVariable("CODEXBAR_CAPTURE_SETTINGS") == "1";
+    /// <summary>File name (without extension) for the customization window, or null to skip it.</summary>
+    public static string? CustomizationName =>
+        Environment.GetEnvironmentVariable("CODEXBAR_CAPTURE_SETTINGS") is { Length: > 0 } name && name != "0"
+            ? name
+            : null;
 
     /// <summary>Renders the window content at 2x with a transparent background.</summary>
     public static void Save(Window window, string path)
