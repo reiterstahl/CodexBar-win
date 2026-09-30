@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2
+
+- Bordes nítidos: se quitó la sombra que hacía renderizar la ventana como imagen y se alinean las
+  líneas a píxeles enteros, también con escalado de Windows.
+- La lista de cuentas se desplaza cuando no entra en pantalla (pantallas chicas o escala alta), con
+  una barra de scroll fina acorde al tema.
+- "Medianoche" entra completo en su tile de Personalizar.
+
 ## 1.0.1
 
 - El botón **Actualizar** pasa al pie de la ventana, más grande y visible en todas las vistas
