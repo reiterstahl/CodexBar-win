@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- El botón **Actualizar** pasa al pie de la ventana, más grande y visible en todas las vistas
+  (también en Mini). Gira y muestra "Actualizando…" mientras consulta.
+
 ## 1.0.0
 
 Primera versión pública de CodexBar para Windows, fork de
