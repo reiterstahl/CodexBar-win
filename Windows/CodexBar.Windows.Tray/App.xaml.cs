@@ -85,6 +85,12 @@ public partial class App : System.Windows.Application
         _clockTimer.Tick += (_, _) => _window?.ViewModel.RefreshTimeLabels();
         _clockTimer.Start();
 
+        if (ScreenshotCapture.OutputDirectory is string captureDirectory)
+        {
+            _ = CaptureAndExitAsync(captureDirectory);
+            return;
+        }
+
         if (_updater.IsInstalled)
         {
             // First check shortly after startup, then every six hours.
@@ -242,6 +248,32 @@ public partial class App : System.Windows.Application
         catch (Exception)
         {
             _notifyIcon.Icon = _normalIcon;
+        }
+    }
+
+    private async Task CaptureAndExitAsync(string directory)
+    {
+        try
+        {
+            await RefreshAsync();
+            if (_window is null)
+            {
+                return;
+            }
+
+            ShowWindow();
+            await Task.Delay(TimeSpan.FromSeconds(1.5));
+            ScreenshotCapture.Save(_window, Path.Combine(directory, $"{ScreenshotCapture.Name}.png"));
+            if (ScreenshotCapture.IncludeCustomization)
+            {
+                SettingsWindow settings = _window.ShowCustomization();
+                await Task.Delay(TimeSpan.FromSeconds(1.5));
+                ScreenshotCapture.Save(settings, Path.Combine(directory, "personalizar.png"));
+            }
+        }
+        finally
+        {
+            ExitApplication();
         }
     }
 

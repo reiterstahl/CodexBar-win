@@ -14,7 +14,9 @@
     ResizeMode="CanMinimize"
     ShowInTaskbar="True"
     SizeToContent="Height"
+    SnapsToDevicePixels="True"
     Topmost="{Binding IsAlwaysOnTop}"
+    UseLayoutRounding="True"
     WindowStartupLocation="Manual"
     PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown"
     WindowStyle="None">
@@ -251,13 +253,6 @@
         <Border.LayoutTransform>
             <ScaleTransform ScaleX="{Binding UiScale}" ScaleY="{Binding UiScale}" />
         </Border.LayoutTransform>
-        <Border.Effect>
-            <DropShadowEffect
-                BlurRadius="22"
-                Opacity="0.4"
-                ShadowDepth="6"
-                Color="#000000" />
-        </Border.Effect>
 
         <DockPanel LastChildFill="True">
             <Grid

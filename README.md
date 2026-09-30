@@ -1,4 +1,8 @@
-# CodexBar para Windows
+<p align="center">
+  <img src="docs/images/logo.png" width="112" alt="Logo de CodexBar para Windows: dos barras sobre un cuadrado amarillo">
+</p>
+
+<h1 align="center">CodexBar para Windows</h1>
 
 > [!IMPORTANT]
 > **Este proyecto es un fork de [steipete/CodexBar](https://github.com/steipete/CodexBar)**, creado por

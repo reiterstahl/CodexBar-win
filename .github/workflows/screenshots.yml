@@ -1,0 +1,102 @@
+name: Screenshots
+
+# Renders README screenshots from the real tray app with fictitious accounts served by
+# Windows/Tools/CodexBar.DemoEngine. Download the artifact and copy it to docs/images/.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
+        with:
+          global-json-file: Windows/global.json
+
+      - name: Build tray and demo engine
+        shell: pwsh
+        working-directory: Windows
+        run: |
+          dotnet build CodexBar.Windows.Tray/CodexBar.Windows.Tray.csproj -c Release
+          dotnet build Tools/CodexBar.DemoEngine/CodexBar.DemoEngine.csproj -c Release
+
+      - name: Capture screenshots
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tray = Resolve-Path "Windows/CodexBar.Windows.Tray/bin/Release/net10.0-windows/CodexBar.Windows.Tray.exe"
+          $engine = Resolve-Path "Windows/Tools/CodexBar.DemoEngine/bin/Release/net10.0/CodexBarDemoEngine.exe"
+          $output = Join-Path $PWD "artifacts/screenshots"
+          New-Item -ItemType Directory -Force -Path $output | Out-Null
+
+          # Secondary profiles are discovered only when their credential file exists.
+          foreach ($profile in @(".codex-2\auth.json", ".claude-2\.credentials.json")) {
+            $path = Join-Path $env:USERPROFILE $profile
+            New-Item -ItemType Directory -Force -Path (Split-Path $path) | Out-Null
+            Set-Content -LiteralPath $path -Value "{}"
+          }
+
+          function Key([string] $provider, [string] $folder) {
+            ("$provider|" + [IO.Path]::GetFullPath((Join-Path $env:USERPROFILE $folder))).ToUpperInvariant()
+          }
+          $names = @{
+            (Key "codex" ".codex") = "Codex · Personal"
+            (Key "codex" ".codex-2") = "Codex · Trabajo"
+            (Key "claude" ".claude") = "Claude · Max"
+            (Key "claude" ".claude-2") = "Claude · Personal"
+          }
+          $settingsPath = Join-Path $env:LOCALAPPDATA "CodexBar\settings.json"
+          New-Item -ItemType Directory -Force -Path (Split-Path $settingsPath) | Out-Null
+
+          $shots = @(
+            @{ name = "tarjetas"; viewMode = "cards"; theme = "grafito"; chartKind = "bar"; colorMode = "accent"; settings = "1" },
+            @{ name = "resumen"; viewMode = "summary"; theme = "medianoche"; chartKind = "ring"; colorMode = "level"; settings = "0" },
+            @{ name = "mini"; viewMode = "mini"; theme = "claro"; chartKind = "gauge"; colorMode = "provider"; settings = "0" }
+          )
+          foreach ($shot in $shots) {
+            @{
+              accountNames = $names
+              viewMode = $shot.viewMode
+              theme = $shot.theme
+              chartKind = $shot.chartKind
+              colorMode = $shot.colorMode
+              accentColor = "#D9D900"
+              showPace = $true
+              availableFirst = $true
+              notifyOnRecovery = $false
+              dynamicTrayIcon = $true
+              uiScale = 1.0
+              windowLeft = 40
+              windowTop = 40
+            } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $settingsPath -Encoding utf8
+
+            $env:CODEXBAR_ENGINE_PATH = $engine
+            $env:CODEXBAR_CAPTURE_DIR = $output
+            $env:CODEXBAR_CAPTURE_NAME = $shot.name
+            $env:CODEXBAR_CAPTURE_SETTINGS = $shot.settings
+            $process = Start-Process -FilePath $tray -PassThru
+            if (-not $process.WaitForExit(60000)) {
+              $process.Kill()
+              throw "The tray app did not finish capturing $($shot.name)."
+            }
+          }
+
+          Get-ChildItem $output | Format-Table Name, Length
+          $expected = @("tarjetas.png", "resumen.png", "mini.png", "personalizar.png")
+          foreach ($file in $expected) {
+            if (-not (Test-Path (Join-Path $output $file))) { throw "Missing $file" }
+          }
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: screenshots
+          path: artifacts/screenshots
+          if-no-files-found: error

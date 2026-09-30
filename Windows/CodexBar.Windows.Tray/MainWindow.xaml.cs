@@ -67,18 +67,19 @@ public partial class MainWindow : Window
 
     public MainWindowViewModel ViewModel { get; }
 
-    public void ShowCustomization()
+    public SettingsWindow ShowCustomization()
     {
         if (_settingsWindow is { IsLoaded: true })
         {
             _settingsWindow.Activate();
-            return;
+            return _settingsWindow;
         }
 
         _settingsWindow = new SettingsWindow(ViewModel) { Owner = this };
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.PlaceNextTo(this);
         _settingsWindow.Show();
+        return _settingsWindow;
     }
 
     public void RestoreFromTray()

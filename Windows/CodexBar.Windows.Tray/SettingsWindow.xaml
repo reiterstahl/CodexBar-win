@@ -12,6 +12,8 @@
     ResizeMode="NoResize"
     ShowInTaskbar="False"
     SizeToContent="Height"
+    SnapsToDevicePixels="True"
+    UseLayoutRounding="True"
     WindowStartupLocation="Manual"
     WindowStyle="None">
     <Window.Resources>
