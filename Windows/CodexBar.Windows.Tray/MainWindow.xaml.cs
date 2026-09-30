@@ -30,7 +30,7 @@ public partial class MainWindow : Window
     private System.Drawing.Icon? _taskbarLargeIcon;
     private MemoryStream? _taskbarSmallIconStream;
     private MemoryStream? _taskbarLargeIconStream;
-    private System.Windows.Point? _compactDragOrigin;
+    private SettingsWindow? _settingsWindow;
     private bool _allowClose;
     private bool _positionInitialized;
     private bool _taskbarIconRefreshQueued;
@@ -47,6 +47,7 @@ public partial class MainWindow : Window
             Interval = TimeSpan.FromMilliseconds(700),
         };
         _recoveryAlertTimer.Tick += (_, _) => ViewModel.ToggleRecoveryPulse();
+        ViewModel.Palette.ApplyTo(System.Windows.Application.Current.Resources);
         ApplyViewMode();
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         Deactivated += (_, _) => SaveWindowPosition();
@@ -63,6 +64,20 @@ public partial class MainWindow : Window
     public event EventHandler? RefreshRequested;
 
     public MainWindowViewModel ViewModel { get; }
+
+    public void ShowCustomization()
+    {
+        if (_settingsWindow is { IsLoaded: true })
+        {
+            _settingsWindow.Activate();
+            return;
+        }
+
+        _settingsWindow = new SettingsWindow(ViewModel) { Owner = this };
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow.PlaceNextTo(this);
+        _settingsWindow.Show();
+    }
 
     public void RestoreFromTray()
     {
@@ -131,11 +146,11 @@ public partial class MainWindow : Window
         try
         {
             System.Windows.Clipboard.SetText(provider.LoginCommand);
-            ViewModel.ShowStatus($"Login command copied for {provider.DisplayName}.");
+            ViewModel.ShowStatus($"Login copiado para {provider.DisplayName}. Pegalo en PowerShell.");
         }
         catch (Exception)
         {
-            ViewModel.ShowStatus("Could not copy the login command. Try again.");
+            ViewModel.ShowStatus("No se pudo copiar el login. Intentá de nuevo.");
         }
     }
 
@@ -152,49 +167,21 @@ public partial class MainWindow : Window
         object sender,
         MouseButtonEventArgs e)
     {
-        if (e.ChangedButton != MouseButton.Left)
+        if (e.ChangedButton == MouseButton.Left)
         {
-            return;
+            DismissRecoveryAlertForSource(e.OriginalSource);
         }
-
-        DismissRecoveryAlertForSource(e.OriginalSource);
-        if (!ViewModel.IsCompact)
-        {
-            return;
-        }
-
-        if (e.ClickCount >= 2)
-        {
-            CancelCompactDrag();
-            ViewModel.ToggleCompact();
-            e.Handled = true;
-            return;
-        }
-
-        _compactDragOrigin = e.GetPosition(this);
-        CaptureMouse();
-        e.Handled = true;
     }
 
-    private void Window_PreviewMouseMove(
-        object sender,
-        System.Windows.Input.MouseEventArgs e)
+    private void CardList_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (!ViewModel.IsCompact ||
-            _compactDragOrigin is not System.Windows.Point origin ||
-            e.LeftButton != MouseButtonState.Pressed)
+        // Buttons and the rename box handle their own clicks; anything that bubbles up here
+        // is card background, which moves the window like the header does.
+        if (e.ButtonState != MouseButtonState.Pressed)
         {
             return;
         }
 
-        System.Windows.Point current = e.GetPosition(this);
-        if (Math.Abs(current.X - origin.X) < SystemParameters.MinimumHorizontalDragDistance &&
-            Math.Abs(current.Y - origin.Y) < SystemParameters.MinimumVerticalDragDistance)
-        {
-            return;
-        }
-
-        CancelCompactDrag();
         try
         {
             DragMove();
@@ -203,27 +190,6 @@ public partial class MainWindow : Window
         catch (InvalidOperationException)
         {
             // The mouse button was released before Windows began the move operation.
-        }
-        e.Handled = true;
-    }
-
-    private void Window_PreviewMouseLeftButtonUp(
-        object sender,
-        MouseButtonEventArgs e)
-    {
-        if (_compactDragOrigin is not null)
-        {
-            CancelCompactDrag();
-            e.Handled = true;
-        }
-    }
-
-    private void CancelCompactDrag()
-    {
-        _compactDragOrigin = null;
-        if (IsMouseCaptured)
-        {
-            ReleaseMouseCapture();
         }
     }
 
@@ -241,29 +207,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private void CompactButton_Click(object sender, RoutedEventArgs e)
+    private void CustomizeButton_Click(object sender, RoutedEventArgs e)
     {
-        ViewModel.ToggleCompact();
-    }
-
-    private void SettingsButton_Click(object sender, RoutedEventArgs e)
-    {
-        ViewModel.ToggleSettings();
-    }
-
-    private void DecreaseUiScaleButton_Click(object sender, RoutedEventArgs e)
-    {
-        ViewModel.DecreaseUiScale();
-    }
-
-    private void IncreaseUiScaleButton_Click(object sender, RoutedEventArgs e)
-    {
-        ViewModel.IncreaseUiScale();
-    }
-
-    private void ResetUiScaleButton_Click(object sender, RoutedEventArgs e)
-    {
-        ViewModel.ResetUiScale();
+        ShowCustomization();
     }
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
@@ -280,10 +226,14 @@ public partial class MainWindow : Window
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainWindowViewModel.IsCompact) ||
+        if (e.PropertyName == nameof(MainWindowViewModel.BaseWidth) ||
             e.PropertyName == nameof(MainWindowViewModel.UiScale))
         {
             ApplyViewMode();
+        }
+        else if (e.PropertyName == nameof(MainWindowViewModel.Palette))
+        {
+            ViewModel.Palette.ApplyTo(System.Windows.Application.Current.Resources);
         }
         else if (e.PropertyName == nameof(MainWindowViewModel.IsAlwaysOnTop))
         {
@@ -309,8 +259,7 @@ public partial class MainWindow : Window
 
     private void ApplyViewMode()
     {
-        Width = 440 * ViewModel.UiScale;
-        MinHeight = ViewModel.IsCompact ? 0 : 220;
+        Width = ViewModel.BaseWidth * ViewModel.UiScale;
     }
 
     private void EnsureWindowPosition()

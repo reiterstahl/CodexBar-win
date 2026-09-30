@@ -18,6 +18,8 @@ public partial class App : System.Windows.Application
     private DispatcherTimer? _trayClickTimer;
     private Forms.NotifyIcon? _notifyIcon;
     private Icon? _normalIcon;
+    private Icon? _dynamicIcon;
+    private string? _dynamicIconKey;
     private MainWindow? _window;
     private AppSettingsStore? _settingsStore;
 
@@ -31,12 +33,19 @@ public partial class App : System.Windows.Application
         MainWindow = _window;
         _ = new WindowInteropHelper(_window).EnsureHandle();
         _window.RefreshRequested += (_, _) => _ = RefreshAsync();
+        _window.ViewModel.QuotaRecovered += (_, recovered) => ShowRecoveryNotification(recovered);
+        _window.ViewModel.AppearanceChanged += (_, _) => UpdateTrayIcon();
 
         var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("Open", null, (_, _) => ShowWindow());
-        menu.Items.Add("Refresh", null, (_, _) => _ = RefreshAsync());
+        menu.Items.Add("Abrir", null, (_, _) => ShowWindow());
+        menu.Items.Add("Actualizar", null, (_, _) => _ = RefreshAsync());
+        menu.Items.Add("Personalizar…", null, (_, _) =>
+        {
+            ShowWindow();
+            _window?.ShowCustomization();
+        });
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Exit", null, (_, _) => ExitApplication());
+        menu.Items.Add("Salir", null, (_, _) => ExitApplication());
 
         _notifyIcon = new Forms.NotifyIcon
         {
@@ -78,6 +87,7 @@ public partial class App : System.Windows.Application
         _trayClickTimer?.Stop();
         _notifyIcon?.Dispose();
         _normalIcon?.Dispose();
+        _dynamicIcon?.Dispose();
         base.OnExit(e);
     }
 
@@ -133,7 +143,7 @@ public partial class App : System.Windows.Application
                 ? new ProviderFailure(
                     profile.Provider,
                     "missing_result",
-                    $"{profile.Label} returned no usage information.")
+                    $"{profile.Label} no devolvió información de uso.")
                 : null;
             return new ProviderProfileResult(
                 profile,
@@ -162,19 +172,66 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        int availableCount = results.Count(result => result.Snapshot is not null);
-        string summary = availableCount switch
+        int accountCount = results.Count(result => result.Snapshot is not null);
+        int availableCount = _window?.ViewModel.Providers.Count(card => card.HasQuota) ?? 0;
+        _notifyIcon.Text = accountCount == 0
+            ? "CodexBar — cuentas no disponibles"
+            : $"CodexBar — {availableCount} de {accountCount} con cuota";
+        UpdateTrayIcon();
+    }
+
+    private void UpdateTrayIcon()
+    {
+        if (_notifyIcon is null || _window is null)
         {
-            0 => "CodexBar — accounts unavailable",
-            1 => "CodexBar — 1 account",
-            _ => $"CodexBar — {availableCount} accounts",
-        };
-        _notifyIcon.Text = summary;
-        if (_normalIcon is not null)
+            return;
+        }
+
+        TrayIconState? state = _window.ViewModel.CurrentTrayState();
+        if (!_window.ViewModel.Settings.DynamicTrayIcon || state is null)
         {
             // Reapply the stable icon after refresh to repair stale shell rendering.
             _notifyIcon.Icon = _normalIcon;
+            _dynamicIcon?.Dispose();
+            _dynamicIcon = null;
+            _dynamicIconKey = null;
+            return;
         }
+
+        string key = TrayIconRenderer.CacheKey(state, _window.ViewModel.Palette);
+        if (key == _dynamicIconKey && _dynamicIcon is not null)
+        {
+            _notifyIcon.Icon = _dynamicIcon;
+            return;
+        }
+
+        try
+        {
+            Icon rendered = TrayIconRenderer.Render(state, _window.ViewModel.Palette);
+            Icon? previous = _dynamicIcon;
+            _notifyIcon.Icon = rendered;
+            _dynamicIcon = rendered;
+            _dynamicIconKey = key;
+            previous?.Dispose();
+        }
+        catch (Exception)
+        {
+            _notifyIcon.Icon = _normalIcon;
+        }
+    }
+
+    private void ShowRecoveryNotification(QuotaRecoveredEventArgs recovered)
+    {
+        if (_notifyIcon is null || _window?.ViewModel.Settings.NotifyOnRecovery != true)
+        {
+            return;
+        }
+
+        _notifyIcon.ShowBalloonTip(
+            8000,
+            $"{recovered.DisplayName} ya tiene cuota",
+            recovered.Detail,
+            Forms.ToolTipIcon.None);
     }
 
     private void ScheduleTrayToggle()

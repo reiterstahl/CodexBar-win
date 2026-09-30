@@ -25,15 +25,18 @@ The native tray shell lives under `Windows/`. It is a dependency-free WPF applic
 .NET 10 LTS. `CodexBar.EngineClient` owns process execution and schema validation, while
 `CodexBar.Windows.Tray` only owns presentation, refresh scheduling, and tray interactions.
 
-The tray uses a dark theme with `#D9D900` accents and an original CodexBar icon. Account names,
-compact-summary mode, and always-on-top preference are stored in
-`%LOCALAPPDATA%\CodexBar\settings.json`. This file contains presentation preferences and profile
-directory identifiers only; it never contains OAuth credentials. The condensed card layout has no
-vertical scrollbar, and the window restores the last position selected by dragging its header.
-The **Aa** appearance panel scales the complete interface from 80% to 160% and persists the
-selection for high-resolution displays. Reset timing is presented as a minute-level live
-countdown, with the short session first in Summary view and a full localized weekday/date for
-each reset. Countdown labels update every minute without launching provider processes; provider
+The tray offers Cards, Summary, and Mini views and a **Personalizar** window with five themes
+(Grafito is the default, with `#D9D900` accents), any accent color, five chart types (bars,
+rings, gauge, blocks, numbers), accent/level/provider chart colors, available-or-used
+percentages, density, 80%–160% interface scaling, a pace marker, Windows notifications when a
+quota returns, and a dynamic notification-area icon. Theme brushes are application resources
+replaced at runtime (`AppearancePalette`), and user-chosen colors are nudged until they reach
+WCAG contrast on the active theme. Account names and all of these preferences are stored in
+`%LOCALAPPDATA%\CodexBar\settings.json`; older `compactView` settings migrate to the Summary
+view. This file contains presentation preferences and profile directory identifiers only; it
+never contains OAuth credentials. The window restores the last position selected by dragging it.
+Reset timing is presented as a minute-level live countdown with a short reset date, and the full
+localized weekday/date in each quota's tooltip. Countdown labels update every minute without launching provider processes; provider
 usage still refreshes every five minutes.
 
 ## Security boundary

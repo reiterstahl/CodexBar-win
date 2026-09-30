@@ -167,15 +167,22 @@ presiona **Refresh**. Con dos cuentas por proveedor deben aparecer:
 3. Claude principal.
 4. Claude secundario.
 
-Puedes hacer clic en el nombre de cada cuenta para cambiarlo. El botón **Aa**
-ajusta la escala de la interfaz entre 80% y 160%; **Summary** activa la vista
-apaisada y `◆` activa o desactiva “siempre encima”.
+Puedes hacer clic en el nombre de cada cuenta para cambiarlo. Los botones del
+encabezado cambian entre las vistas **Tarjetas**, **Resumen** y **Mini**,
+actualizan los datos, activan **Siempre visible** (chincheta), abren
+**Personalizar**, minimizan o esconden la ventana en el área de notificación.
 
-Cuando una cuenta no tiene una sesión válida, su tarjeta muestra **Copy
-login**. El botón copia al portapapeles el bloque de PowerShell correcto para
-esa cuenta concreta, incluida su carpeta aislada. No incluye contraseñas,
-tokens ni otros secretos. El botón permanece oculto mientras la sesión es
-válida; en Summary se muestra como **Login**.
+**Personalizar** permite elegir tema (Grafito, Medianoche, Claro, Papel o Alto
+contraste), color de acento (seis predefinidos, cualquier color o un código
+`#RRGGBB`), tipo de gráfico (barras, anillos, medidor, bloques o números), cómo
+se colorean los gráficos (acento, por nivel de cuota o un color por proveedor),
+si se muestra el porcentaje disponible o usado, densidad y tamaño de la
+interfaz (80% a 160%). Todo se aplica al instante y se guarda solo.
+
+Cuando una cuenta no tiene una sesión válida, su tarjeta muestra **Sin sesión**
+y el botón **Copiar login**. El botón copia al portapapeles el bloque de
+PowerShell correcto para esa cuenta concreta, incluida su carpeta aislada. No
+incluye contraseñas, tokens ni otros secretos.
 
 Cuando Claude muestre `Paste code here`, pega el código con clic derecho o
 `Shift+Insert`. Claude puede ocultar los caracteres pegados, por lo que el
@@ -183,25 +190,30 @@ campo puede parecer vacío. Usa solamente el código de la autorización que
 acabas de iniciar; un código anterior, incompleto o acompañado por la URL puede
 producir HTTP 400.
 
-La identidad visible de una cuenta con correo muestra únicamente la parte
-anterior a `@`. Summary usa una vista pequeña con solo la barra gráfica de la
-sesión y su cuenta regresiva. Para Claude y Codex, las vistas muestran
-únicamente **Session** y **Weekly**; se omiten cuotas de modelo que duplican la
-información semanal.
+Debajo del nombre se ve el proveedor, el plan y la parte del correo anterior a
+`@`. Para Claude y Codex, las vistas muestran únicamente **Sesión** y
+**Semanal**; se omiten cuotas de modelo que duplican la información semanal.
+Cada cuota muestra la cuenta regresiva y la fecha de renovación (la fecha
+completa aparece al pasar el mouse). Con el **marcador de ritmo** activo, una
+línea vertical sobre la barra indica dónde deberías estar si consumieras parejo
+hasta la renovación, y un texto avisa si a este ritmo la cuota se agota antes.
 
-Si **Session** o **Weekly** llega a 0% disponible, la tarjeta usa un fondo rojo
-tenue y se mueve debajo de las cuentas que todavía tienen cuota. Cuando ambas
-cuotas vuelven a estar disponibles, la tarjeta regresa a la sección superior y
-su fondo parpadea suavemente en verde; haz clic sobre esa tarjeta para descartar
-la alerta. El icono del área de notificación permanece normal y sin indicador
-verde adicional. Mientras está agotada, el encabezado de la tarjeta destaca el
-tiempo que falta como **Disponible en …**: aparece en ámbar cuando faltan 31
-minutos o más y cambia a verde cuando quedan 30 minutos o menos. La fila de la
-cuota indica **Límite alcanzado** y conserva la fecha completa de renovación.
+Si **Sesión** o **Semanal** llega a 0% disponible, la tarjeta usa un fondo rojo
+tenue y se mueve debajo de las cuentas que todavía tienen cuota (se puede
+desactivar en **Personalizar**). Mientras está agotada, la tarjeta muestra
+**Vuelve en …** en ámbar, que cambia a verde cuando quedan 30 minutos o menos.
+Cuando las cuotas vuelven, la tarjeta regresa arriba, muestra **Disponible otra
+vez** y parpadea suavemente en verde; haz clic sobre ella para descartar la
+alerta. Si está activado, Windows muestra además una notificación.
+
+El ícono del área de notificación muestra la sesión (barra gruesa) y la semana
+(barra fina) de la cuenta más limitada, con un punto rojo si hay una cuenta
+agotada o verde si una acaba de recuperarse. Se puede volver al ícono fijo
+desde **Personalizar**.
 
 Cuando el token de acceso de Claude Code vence, CodexBar renueva la sesión de
 forma automática con el refresh token ya guardado por Claude Code. No abre el
-navegador ni requiere volver a iniciar sesión. Solo necesitarás usar **Copy
+navegador ni requiere volver a iniciar sesión. Solo necesitarás usar **Copiar
 login** si Claude revoca la sesión o rechaza el refresh token.
 
 Para una referencia de los comandos de inicio/cierre de sesión por perfil,

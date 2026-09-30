@@ -1,4 +1,5 @@
 using CodexBar.EngineClient;
+using CodexBar.Windows.Tray;
 
 var tests = new (string Name, Action Run)[]
 {
@@ -7,6 +8,12 @@ var tests = new (string Name, Action Run)[]
     ("rejects unknown provider", RejectsUnknownProvider),
     ("resolves explicit engine path", ResolvesExplicitEnginePath),
     ("discovers isolated provider profiles", DiscoversIsolatedProviderProfiles),
+    ("parses and formats hex colors", ParsesAndFormatsHexColors),
+    ("lifts custom accents to readable contrast", LiftsCustomAccentsToReadableContrast),
+    ("picks readable ink for accent fills", PicksReadableInkForAccentFills),
+    ("projects pace until reset", ProjectsPaceUntilReset),
+    ("formats countdown durations", FormatsCountdownDurations),
+    ("parses stored appearance options", ParsesStoredAppearanceOptions),
 };
 
 foreach ((string name, Action run) in tests)
@@ -23,7 +30,7 @@ foreach ((string name, Action run) in tests)
     }
 }
 
-Console.WriteLine($"{tests.Length} engine client tests passed.");
+Console.WriteLine($"{tests.Length} engine client and appearance tests passed.");
 return 0;
 
 static void ParsesSnapshotContract()
@@ -149,6 +156,82 @@ static void DiscoversIsolatedProviderProfiles()
     finally
     {
         Directory.Delete(temporaryDirectory, recursive: true);
+    }
+}
+
+static void ParsesAndFormatsHexColors()
+{
+    Assert(RgbColor.TryParse("#d9d900", out RgbColor accent), "Expected a six-digit color.");
+    Assert(accent.ToHex() == "#D9D900", "Expected uppercase round-trip.");
+    Assert(RgbColor.TryParse("fff", out RgbColor white) && white == RgbColor.White, "Expected shorthand expansion.");
+    Assert(!RgbColor.TryParse("#12345", out _), "Expected invalid length to be rejected.");
+    Assert(!RgbColor.TryParse("#GGGGGG", out _), "Expected non-hex digits to be rejected.");
+}
+
+static void LiftsCustomAccentsToReadableContrast()
+{
+    RgbColor yellow = RgbColor.Parse("#D9D900");
+    RgbColor white = RgbColor.White;
+    RgbColor fill = yellow.EnsureContrast(white, 3);
+    RgbColor text = yellow.EnsureContrast(white, 4.5);
+    Assert(RgbColor.Contrast(fill, white) >= 3, "Expected graphics contrast on a light theme.");
+    Assert(RgbColor.Contrast(text, white) >= 4.5, "Expected text contrast on a light theme.");
+
+    RgbColor dark = RgbColor.Parse("#0F1115");
+    Assert(yellow.EnsureContrast(dark, 3) == yellow, "Expected a readable accent to stay untouched.");
+    RgbColor navy = RgbColor.Parse("#101060");
+    Assert(RgbColor.Contrast(navy.EnsureContrast(dark, 3), dark) >= 3, "Expected dark accents to be lightened.");
+}
+
+static void PicksReadableInkForAccentFills()
+{
+    Assert(RgbColor.Parse("#D9D900").ReadableInk() != RgbColor.White, "Expected dark ink on yellow.");
+    Assert(RgbColor.Parse("#1E3A8A").ReadableInk() == RgbColor.White, "Expected white ink on navy.");
+}
+
+static void ProjectsPaceUntilReset()
+{
+    var now = new DateTimeOffset(2026, 9, 30, 13, 26, 0, TimeSpan.Zero);
+
+    PaceEstimate enough = UsageMath.EstimatePace(38, 300, now.AddMinutes(134), now);
+    Assert(enough.Kind == PaceKind.Enough, "Expected 38% used after 166 of 300 minutes to last.");
+    Assert(Math.Abs(enough.ElapsedFraction - (166.0 / 300)) < 0.001, "Expected elapsed fraction.");
+
+    PaceEstimate runsOut = UsageMath.EstimatePace(88, 10_080, now.AddMinutes(1335), now);
+    Assert(runsOut.Kind == PaceKind.RunsOut, "Expected 88% used of the week to run out early.");
+    Assert(runsOut.MinutesToEmpty is > 1100 and < 1300, "Expected roughly 20 hours to empty.");
+
+    Assert(UsageMath.EstimatePace(100, 300, now.AddMinutes(65), now).Kind == PaceKind.Exhausted,
+        "Expected an exhausted window.");
+    Assert(UsageMath.EstimatePace(40, null, now.AddMinutes(65), now).Kind == PaceKind.Unknown,
+        "Expected unknown pace without a window length.");
+    Assert(UsageMath.EstimatePace(0, 300, now.AddMinutes(300), now).Kind == PaceKind.Enough,
+        "Expected a fresh window to have enough quota.");
+}
+
+static void FormatsCountdownDurations()
+{
+    Assert(UsageMath.FormatDuration(TimeSpan.FromMinutes(41)) == "41 min", "Expected minutes.");
+    Assert(UsageMath.FormatDuration(TimeSpan.FromMinutes(65)) == "1 h 05 min", "Expected padded minutes.");
+    Assert(UsageMath.FormatDuration(TimeSpan.FromMinutes(120)) == "2 h", "Expected whole hours.");
+    Assert(UsageMath.FormatDuration(TimeSpan.FromMinutes(4020)) == "2 d 19 h", "Expected days and hours.");
+    Assert(UsageMath.FormatDuration(TimeSpan.FromSeconds(30)) == "1 min", "Expected partial minutes to round up.");
+    Assert(UsageMath.FormatApproximate(1193) == "20 h", "Expected an approximate hour count.");
+    Assert(UsageMath.FormatApproximate(45) == "45 min", "Expected approximate minutes.");
+}
+
+static void ParsesStoredAppearanceOptions()
+{
+    Assert(ThemeCatalog.ParseOption("summary", ViewMode.Cards) == ViewMode.Summary, "Expected case-insensitive parsing.");
+    Assert(ThemeCatalog.ParseOption("unknown", ChartKind.Bar) == ChartKind.Bar, "Expected fallback for unknown values.");
+    Assert(ThemeCatalog.ParseOption("7", Density.Comfortable) == Density.Comfortable, "Expected undefined numbers to fall back.");
+    Assert(ThemeCatalog.FormatOption(ChartColorMode.Provider) == "provider", "Expected camel-case storage.");
+    Assert(ThemeCatalog.Find("no-such-theme").Id == ThemeCatalog.DefaultThemeId, "Expected the default theme.");
+    foreach (ThemeDefinition theme in ThemeCatalog.Themes)
+    {
+        RgbColor surface = RgbColor.Parse(theme.Surface);
+        Assert(RgbColor.Contrast(RgbColor.Parse(theme.Text), surface) >= 7, $"Expected strong text contrast in {theme.Name}.");
+        Assert(RgbColor.Contrast(RgbColor.Parse(theme.Muted), surface) >= 4.5, $"Expected readable muted text in {theme.Name}.");
     }
 }
 

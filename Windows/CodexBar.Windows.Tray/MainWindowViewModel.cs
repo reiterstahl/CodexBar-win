@@ -2,9 +2,20 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Windows;
+using System.Windows.Controls;
 using CodexBar.EngineClient;
+using Brush = System.Windows.Media.Brush;
 
 namespace CodexBar.Windows.Tray;
+
+public sealed record QuotaRecoveredEventArgs(string DisplayName, string Detail);
+
+public sealed record TrayIconState(
+    double SessionRemaining,
+    double WeeklyRemaining,
+    bool HasExhaustedAccount,
+    bool HasRecoveredAccount);
 
 public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
@@ -16,34 +27,113 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _recoveryAlerts =
         new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<ProviderCardViewModel> _cards = [];
     private bool _hasQuotaBaseline;
     private bool _isAlwaysOnTop;
-    private bool _isCompact;
     private bool _isRefreshing;
-    private bool _isSettingsOpen;
     private bool _recoveryPulseOn = true;
-    private string _status = "Starting…";
+    private string? _transientStatus;
+    private DateTimeOffset? _lastUpdated;
     private double _uiScale;
+    private AppearancePalette _palette;
+    private AppearanceOptions _options;
 
     public MainWindowViewModel(AppSettingsStore settingsStore)
     {
         _settingsStore = settingsStore;
         _isAlwaysOnTop = settingsStore.Settings.AlwaysOnTop;
-        _isCompact = settingsStore.Settings.CompactView;
         _uiScale = settingsStore.Settings.UiScale;
+        _palette = AppearancePalette.Create(settingsStore.Settings);
+        _options = ReadOptions(settingsStore.Settings);
+        Customization = new CustomizationViewModel(settingsStore, this);
+        SelectViewCommand = new ViewCommands(this);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    public event EventHandler<QuotaRecoveredEventArgs>? QuotaRecovered;
+
+    public event EventHandler? AppearanceChanged;
+
     public ObservableCollection<ProviderCardViewModel> Providers { get; } = [];
+
+    public CustomizationViewModel Customization { get; }
+
+    public ViewCommands SelectViewCommand { get; }
+
+    public AppSettings Settings => _settingsStore.Settings;
+
+    public AppearancePalette Palette => _palette;
+
+    public AppearanceOptions Options => _options;
+
+    public ViewMode ViewMode => _options.View;
+
+    public bool IsCardsView => _options.View == ViewMode.Cards;
+
+    public bool IsSummaryView => _options.View == ViewMode.Summary;
+
+    public bool IsMiniView => _options.View == ViewMode.Mini;
+
+    public double BaseWidth => _options.View switch
+    {
+        ViewMode.Summary => 760,
+        ViewMode.Mini => 440,
+        _ => 520,
+    };
+
+    public bool ShowFooter => !IsMiniView;
 
     public string Status
     {
-        get => _status;
-        private set => SetField(ref _status, value);
+        get
+        {
+            if (_isRefreshing)
+            {
+                return "Actualizando…";
+            }
+
+            if (_transientStatus is not null)
+            {
+                return _transientStatus;
+            }
+
+            if (_lastUpdated is not DateTimeOffset updated)
+            {
+                return "Iniciando…";
+            }
+
+            int minutes = (int)Math.Floor((DateTimeOffset.Now - updated).TotalMinutes);
+            string age = minutes < 1 ? "hace un momento" : $"hace {minutes} min";
+            int available = _cards.Count(card => card.HasQuota);
+            return $"Actualizado {age} · {available} de {_cards.Count} con cuota";
+        }
     }
 
+    public string FooterText
+    {
+        get
+        {
+            ProviderCardViewModel? next = NextRecovery();
+            if (next?.ExhaustedWindow?.ResetsAt is DateTimeOffset resetsAt)
+            {
+                return $"Próxima cuota: {next.DisplayName} en " +
+                    UsageMath.FormatDuration(resetsAt - DateTimeOffset.Now);
+            }
+
+            return _cards.Count > 0 && _cards.All(card => card.HasQuota)
+                ? "Todas las cuentas tienen cuota"
+                : "Consulta automática cada 5 min";
+        }
+    }
+
+    public Brush FooterDotBrush => NextRecovery() is null
+        ? _palette.Brush(_palette.AccentFill)
+        : _palette.Brush(_palette.Status.Warn);
+
     public bool CanRefresh => !_isRefreshing;
+
+    public bool IsRefreshing => _isRefreshing;
 
     public bool HasRecoveryAlerts => _recoveryAlerts.Count > 0;
 
@@ -60,32 +150,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    public bool IsCompact
-    {
-        get => _isCompact;
-        private set
-        {
-            if (!SetField(ref _isCompact, value))
-            {
-                return;
-            }
-            OnPropertyChanged(nameof(CompactButtonLabel));
-            _settingsStore.SetCompactView(value);
-        }
-    }
-
-    public string CompactButtonLabel => IsCompact ? "Cards" : "Summary";
-
-    public bool IsSettingsOpen
-    {
-        get => _isSettingsOpen;
-        private set => SetField(ref _isSettingsOpen, value);
-    }
-
     public double UiScale
     {
         get => _uiScale;
-        private set
+        set
         {
             double scale = Math.Clamp(
                 Math.Round(value, 1),
@@ -96,66 +164,80 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 return;
             }
 
-            OnPropertyChanged(nameof(UiScaleLabel));
-            OnPropertyChanged(nameof(CanDecreaseUiScale));
-            OnPropertyChanged(nameof(CanIncreaseUiScale));
+            OnPropertyChanged(nameof(UiScalePercent));
             _settingsStore.SetUiScale(scale);
         }
     }
 
-    public string UiScaleLabel => $"{UiScale:P0}";
-
-    public bool CanDecreaseUiScale => UiScale > MinimumUiScale;
-
-    public bool CanIncreaseUiScale => UiScale < MaximumUiScale;
-
-    public void ToggleCompact()
+    public double UiScalePercent
     {
-        bool compact = !IsCompact;
-        if (compact)
+        get => Math.Round(UiScale * 100);
+        set => UiScale = value / 100;
+    }
+
+    public void SelectView(ViewMode view)
+    {
+        if (view == _options.View)
         {
-            IsSettingsOpen = false;
+            return;
         }
-        IsCompact = compact;
+
+        _settingsStore.Update(settings => settings.ViewMode = ThemeCatalog.FormatOption(view));
+        ReloadAppearance();
     }
 
-    public void ToggleSettings()
+    /// <summary>Re-reads appearance settings and restyles every card in place.</summary>
+    public void ReloadAppearance()
     {
-        IsSettingsOpen = !IsSettingsOpen;
-    }
+        _palette = AppearancePalette.Create(_settingsStore.Settings);
+        _options = ReadOptions(_settingsStore.Settings);
+        if (_uiScale != _settingsStore.Settings.UiScale)
+        {
+            _uiScale = _settingsStore.Settings.UiScale;
+            OnPropertyChanged(nameof(UiScale));
+            OnPropertyChanged(nameof(UiScalePercent));
+        }
 
-    public void DecreaseUiScale()
-    {
-        UiScale -= 0.1;
-    }
-
-    public void IncreaseUiScale()
-    {
-        UiScale += 0.1;
-    }
-
-    public void ResetUiScale()
-    {
-        UiScale = 1.0;
+        foreach (ProviderCardViewModel card in _cards)
+        {
+            card.ApplyStyle(_palette, _options);
+        }
+        PublishCards();
+        OnPropertyChanged(nameof(Palette));
+        OnPropertyChanged(nameof(Options));
+        OnPropertyChanged(nameof(ViewMode));
+        OnPropertyChanged(nameof(IsCardsView));
+        OnPropertyChanged(nameof(IsSummaryView));
+        OnPropertyChanged(nameof(IsMiniView));
+        OnPropertyChanged(nameof(BaseWidth));
+        OnPropertyChanged(nameof(ShowFooter));
+        OnPropertyChanged(nameof(FooterDotBrush));
+        Customization.Refresh();
+        AppearanceChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void BeginRefresh()
     {
         _isRefreshing = true;
-        Status = "Refreshing…";
+        _transientStatus = null;
+        OnPropertyChanged(nameof(Status));
         OnPropertyChanged(nameof(CanRefresh));
+        OnPropertyChanged(nameof(IsRefreshing));
     }
 
     public void EndRefresh()
     {
         _isRefreshing = false;
+        OnPropertyChanged(nameof(Status));
         OnPropertyChanged(nameof(CanRefresh));
+        OnPropertyChanged(nameof(IsRefreshing));
     }
 
     public void Apply(IReadOnlyList<ProviderProfileResult> results)
     {
         var cards = new List<ProviderCardViewModel>(results.Count);
         var observedProfileKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var recovered = new List<ProviderCardViewModel>();
 
         foreach (ProviderProfileResult result in results)
         {
@@ -163,6 +245,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             observedProfileKeys.Add(profileKey);
             bool isAvailable = result.Snapshot is not null &&
                 HasUsableQuota(result.Snapshot);
+            bool becameAvailable = false;
 
             if (result.Snapshot is not null)
             {
@@ -173,6 +256,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 {
                     _recoveryAlerts.Add(profileKey);
                     _recoveryPulseOn = true;
+                    becameAvailable = true;
                 }
 
                 if (!isAvailable)
@@ -188,7 +272,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
             string displayName = _settingsStore.DisplayName(result.Profile);
             bool recoveryAlertActive = _recoveryAlerts.Contains(profileKey);
-            cards.Add(result.Snapshot is not null
+            ProviderCardViewModel card = result.Snapshot is not null
                 ? ProviderCardViewModel.FromSnapshot(
                     result.Profile,
                     displayName,
@@ -201,7 +285,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                     result.Profile,
                     displayName,
                     result.Failure,
-                    RenameProfile));
+                    RenameProfile);
+            card.ApplyStyle(_palette, _options);
+            cards.Add(card);
+            if (becameAvailable)
+            {
+                recovered.Add(card);
+            }
         }
 
         foreach (string staleProfileKey in _accountAvailability.Keys
@@ -212,38 +302,68 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             _recoveryAlerts.Remove(staleProfileKey);
         }
 
-        Providers.Clear();
-        foreach (ProviderCardViewModel card in cards
-            .OrderBy(card => card.HasError ? 2 : card.IsExhausted ? 1 : 0))
-        {
-            Providers.Add(card);
-        }
+        _cards = cards;
+        PublishCards();
 
         _hasQuotaBaseline = true;
-        OnPropertyChanged(nameof(HasRecoveryAlerts));
-
-        DateTimeOffset generatedAt = results.Count == 0
+        _transientStatus = null;
+        _lastUpdated = results.Count == 0
             ? DateTimeOffset.Now
             : results.Max(result => result.GeneratedAt);
-        Status = $"Updated {generatedAt.ToLocalTime():t}";
+        OnPropertyChanged(nameof(HasRecoveryAlerts));
+        OnPropertyChanged(nameof(Status));
+        OnPropertyChanged(nameof(FooterText));
+        OnPropertyChanged(nameof(FooterDotBrush));
+
+        foreach (ProviderCardViewModel card in recovered)
+        {
+            RateWindowViewModel? session = card.SessionWindow;
+            string detail = session is null
+                ? "La cuota volvió a estar disponible."
+                : $"La sesión se renovó: {session.RemainingPercent:0}% libre.";
+            QuotaRecovered?.Invoke(this, new QuotaRecoveredEventArgs(card.DisplayName, detail));
+        }
+    }
+
+    public TrayIconState? CurrentTrayState()
+    {
+        ProviderCardViewModel[] withData = _cards.Where(card => card.Windows.Count > 0).ToArray();
+        if (withData.Length == 0)
+        {
+            return null;
+        }
+
+        ProviderCardViewModel limiting = withData
+            .OrderBy(card => card.SessionWindow?.RemainingPercent ?? 100)
+            .ThenBy(card => card.WeeklyWindow?.RemainingPercent ?? 100)
+            .First();
+        return new TrayIconState(
+            limiting.SessionWindow?.RemainingPercent ?? 100,
+            limiting.WeeklyWindow?.RemainingPercent ?? 100,
+            withData.Any(card => card.IsExhausted),
+            HasRecoveryAlerts);
     }
 
     public void ApplyError(string message)
     {
-        Status = message;
+        ShowStatus(message);
     }
 
     public void ShowStatus(string message)
     {
-        Status = message;
+        _transientStatus = message;
+        OnPropertyChanged(nameof(Status));
     }
 
     public void RefreshTimeLabels()
     {
-        foreach (ProviderCardViewModel provider in Providers)
+        foreach (ProviderCardViewModel provider in _cards)
         {
             provider.RefreshTimeLabels();
         }
+        _transientStatus = null;
+        OnPropertyChanged(nameof(Status));
+        OnPropertyChanged(nameof(FooterText));
     }
 
     public void ToggleRecoveryPulse()
@@ -254,7 +374,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         }
 
         _recoveryPulseOn = !_recoveryPulseOn;
-        foreach (ProviderCardViewModel provider in Providers)
+        foreach (ProviderCardViewModel provider in _cards)
         {
             provider.SetRecoveryPulse(
                 _recoveryAlerts.Contains(provider.Profile.Key) && _recoveryPulseOn);
@@ -270,11 +390,43 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         provider.SetRecoveryAlert(active: false, pulseVisible: false);
         OnPropertyChanged(nameof(HasRecoveryAlerts));
+        AppearanceChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private ProviderCardViewModel? NextRecovery()
+    {
+        return _cards
+            .Where(card => card.ExhaustedWindow?.ResetsAt is not null)
+            .OrderBy(card => card.ExhaustedWindow!.ResetsAt)
+            .FirstOrDefault();
+    }
+
+    private void PublishCards()
+    {
+        IEnumerable<ProviderCardViewModel> ordered = Settings.AvailableFirst
+            ? _cards.OrderBy(card => card.HasError ? 2 : card.IsExhausted ? 1 : 0)
+            : _cards;
+        Providers.Clear();
+        foreach (ProviderCardViewModel card in ordered)
+        {
+            Providers.Add(card);
+        }
     }
 
     private void RenameProfile(ProviderProfile profile, string name)
     {
         _settingsStore.SetDisplayName(profile, name);
+    }
+
+    private static AppearanceOptions ReadOptions(AppSettings settings)
+    {
+        return new AppearanceOptions(
+            ThemeCatalog.ParseOption(settings.ViewMode, ViewMode.Cards),
+            ThemeCatalog.ParseOption(settings.ChartKind, ChartKind.Bar),
+            ThemeCatalog.ParseOption(settings.ColorMode, ChartColorMode.Accent),
+            ThemeCatalog.ParseOption(settings.Density, Density.Comfortable),
+            settings.ShowUsedPercent,
+            settings.ShowPace);
     }
 
     private static bool HasUsableQuota(ProviderSnapshot snapshot)
@@ -307,6 +459,15 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+
+    public sealed class ViewCommands(MainWindowViewModel owner)
+    {
+        public RelayCommand Cards { get; } = new(() => owner.SelectView(ViewMode.Cards));
+
+        public RelayCommand Summary { get; } = new(() => owner.SelectView(ViewMode.Summary));
+
+        public RelayCommand Mini { get; } = new(() => owner.SelectView(ViewMode.Mini));
+    }
 }
 
 public sealed class ProviderCardViewModel : INotifyPropertyChanged
@@ -315,11 +476,13 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
     private string _displayName;
     private bool _isRecoveryAlertActive;
     private bool _isRecoveryPulseVisible;
+    private AppearancePalette? _palette;
+    private AppearanceOptions? _options;
 
     private ProviderCardViewModel(
         ProviderProfile profile,
         string displayName,
-        string identity,
+        string subtitle,
         string errorMessage,
         bool requiresLogin,
         bool isExhausted,
@@ -330,7 +493,7 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
     {
         Profile = profile;
         _displayName = displayName;
-        Identity = identity;
+        Subtitle = subtitle;
         ErrorMessage = errorMessage;
         RequiresLogin = requiresLogin;
         IsExhausted = isExhausted;
@@ -361,7 +524,7 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         }
     }
 
-    public string Identity { get; }
+    public string Subtitle { get; }
 
     public string ErrorMessage { get; }
 
@@ -370,6 +533,8 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
     public bool RequiresLogin { get; }
 
     public bool IsExhausted { get; }
+
+    public bool HasQuota => !HasError && !IsExhausted && Windows.Count > 0;
 
     public bool IsRecoveryAlertActive
     {
@@ -381,9 +546,7 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
                 return;
             }
             _isRecoveryAlertActive = value;
-            PropertyChanged?.Invoke(
-                this,
-                new PropertyChangedEventArgs(nameof(IsRecoveryAlertActive)));
+            RaiseAll();
         }
     }
 
@@ -405,13 +568,92 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<RateWindowViewModel> Windows { get; }
 
+    public IReadOnlyList<RateWindowViewModel> VisibleWindows => View == ViewMode.Mini
+        ? Windows.Where(window => window.IsSession).DefaultIfEmpty(Windows.FirstOrDefault())
+            .OfType<RateWindowViewModel>().ToArray()
+        : Windows;
+
     public RateWindowViewModel? SessionWindow =>
         Windows.FirstOrDefault(window => window.IsSession);
+
+    public RateWindowViewModel? WeeklyWindow =>
+        Windows.FirstOrDefault(window => window.Id.Equals("weekly", StringComparison.OrdinalIgnoreCase));
 
     public RateWindowViewModel? ExhaustedWindow => Windows
         .Where(window => window.IsExhausted)
         .OrderBy(window => window.ResetsAt ?? DateTimeOffset.MaxValue)
         .FirstOrDefault();
+
+    public bool IsCardsView => View == ViewMode.Cards;
+
+    public bool IsNameReadOnly => View != ViewMode.Cards;
+
+    public bool ShowSubtitle => View == ViewMode.Cards && Subtitle.Length > 0;
+
+    public Dock HeaderDock => View == ViewMode.Summary ? Dock.Left : Dock.Top;
+
+    public double HeaderWidth => View == ViewMode.Summary ? 170 : double.NaN;
+
+    public Thickness HeaderMargin => View switch
+    {
+        ViewMode.Summary => new Thickness(0, 0, 18, 0),
+        ViewMode.Mini => new Thickness(0, 0, 0, 10),
+        _ => new Thickness(0, 0, 0, IsCompact ? 10 : 14),
+    };
+
+    public Thickness CardPadding => View switch
+    {
+        ViewMode.Summary => new Thickness(14, 10, 14, 10),
+        ViewMode.Mini => new Thickness(14, 12, 14, 12),
+        _ => IsCompact ? new Thickness(12, 10, 12, 10) : new Thickness(16, 14, 16, 14),
+    };
+
+    public Thickness CardMargin => View == ViewMode.Mini
+        ? new Thickness(4)
+        : new Thickness(0, 0, 0, IsCompact ? 6 : 8);
+
+    public double NameFontSize => View == ViewMode.Cards ? 14 : 13;
+
+    public int WindowColumns => View == ViewMode.Mini ? 1 : 2;
+
+    public Thickness WindowsMargin => new(-WindowGap / 2, 0, -WindowGap / 2, 0);
+
+    public Brush? ProviderBrush => _palette is null
+        ? null
+        : _palette.Brush(_palette.ProviderColor(Profile.Provider).EnsureContrast(CardBackground, 3));
+
+    public string PillText
+    {
+        get
+        {
+            if (IsRecoveryAlertActive)
+            {
+                return "Disponible otra vez";
+            }
+
+            if (ExhaustedWindow is RateWindowViewModel exhausted)
+            {
+                return exhausted.ResetsAt is DateTimeOffset resetsAt
+                    ? $"Vuelve en {UsageMath.FormatDuration(resetsAt - DateTimeOffset.Now)}"
+                    : "Límite alcanzado";
+            }
+
+            if (RequiresLogin)
+            {
+                return "Sin sesión";
+            }
+
+            return HasError ? "Sin datos" : string.Empty;
+        }
+    }
+
+    public bool ShowPill => View == ViewMode.Cards && PillText.Length > 0;
+
+    public Brush? PillForeground => _palette is null ? null : _palette.Brush(PillColor);
+
+    public Brush? PillBackground => _palette is null
+        ? null
+        : _palette.Brush(CardBackground.Mix(PillColor, 0.16));
 
     public string LoginCommand => Profile.Provider switch
     {
@@ -431,27 +673,75 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         _ => string.Empty,
     };
 
-    public string CompactSummary
+    private ViewMode View => _options?.View ?? ViewMode.Cards;
+
+    private bool IsCompact => _options?.Density == Density.Compact;
+
+    private double WindowGap => View switch
+    {
+        ViewMode.Summary => 20,
+        ViewMode.Mini => 0,
+        _ => IsCompact ? 14 : 20,
+    };
+
+    private RgbColor CardBackground
     {
         get
         {
-            if (ErrorMessage.Length > 0)
+            if (_palette is null)
             {
-                return ErrorMessage;
+                return RgbColor.Black;
             }
 
-            RateWindowViewModel[] orderedWindows = Windows
-                .OrderByDescending(window => window.IsSession)
-                .ToArray();
-            return string.Join(
-                "  •  ",
-                orderedWindows.Select((window, index) => index == 0
-                    ? $"{window.Label}: {window.CountdownLabel} · " +
-                        $"{window.ResetDateLabel} · {window.RemainingLabel}"
-                    : window.ResetDateLabel.Length > 0
-                        ? $"{window.Label}: {window.ResetDateLabel} · {window.RemainingLabel}"
-                        : $"{window.Label}: {window.CountdownLabel} · {window.RemainingLabel}"));
+            if (IsRecoveryAlertActive)
+            {
+                return _palette.RecoverySurface;
+            }
+
+            return IsExhausted ? _palette.ExhaustedSurface : _palette.Surface;
         }
+    }
+
+    private RgbColor PillColor
+    {
+        get
+        {
+            if (_palette is null)
+            {
+                return RgbColor.White;
+            }
+
+            if (IsRecoveryAlertActive)
+            {
+                return _palette.Status.Ok.EnsureContrast(CardBackground, 4.5);
+            }
+
+            if (ExhaustedWindow is RateWindowViewModel exhausted)
+            {
+                RgbColor color = exhausted.IsResetSoon ? _palette.Status.Ok : _palette.Status.Warn;
+                return color.EnsureContrast(CardBackground, 4.5);
+            }
+
+            return RequiresLogin
+                ? _palette.Text
+                : _palette.Status.Critical.EnsureContrast(CardBackground, 4.5);
+        }
+    }
+
+    public void ApplyStyle(AppearancePalette palette, AppearanceOptions options)
+    {
+        _palette = palette;
+        _options = options;
+        foreach (RateWindowViewModel window in Windows)
+        {
+            window.ApplyStyle(new WindowStyleContext(
+                palette,
+                options,
+                CardBackground,
+                palette.ProviderColor(Profile.Provider),
+                WindowGap));
+        }
+        RaiseAll();
     }
 
     public void RefreshTimeLabels()
@@ -460,7 +750,9 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         {
             window.RefreshTimeLabel();
         }
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompactSummary)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PillText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PillForeground)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PillBackground)));
     }
 
     public void SetRecoveryPulse(bool visible)
@@ -472,6 +764,15 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
     {
         IsRecoveryAlertActive = active;
         IsRecoveryPulseVisible = active && pulseVisible;
+        if (_palette is not null && _options is not null)
+        {
+            ApplyStyle(_palette, _options);
+        }
+    }
+
+    private void RaiseAll()
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
     }
 
     private static string PowerShellLiteral(string value)
@@ -488,14 +789,13 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         bool recoveryPulseVisible,
         Action<ProviderProfile, string> rename)
     {
-        string identity = ShortIdentity(snapshot.Identity);
         IEnumerable<RateWindow> visibleWindows = snapshot.Windows.Where(window =>
             window.Id.Equals("session", StringComparison.OrdinalIgnoreCase) ||
             window.Id.Equals("weekly", StringComparison.OrdinalIgnoreCase));
         return new ProviderCardViewModel(
             profile,
             displayName,
-            identity,
+            BuildSubtitle(profile, snapshot.Identity),
             string.Empty,
             false,
             isExhausted,
@@ -511,16 +811,18 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         ProviderFailure? failure,
         Action<ProviderProfile, string> rename)
     {
-        string message = failure?.Message ?? "Provider data is unavailable.";
         bool requiresLogin = failure?.Code is
             "credentials_not_found" or
             "credentials_invalid" or
             "credentials_expired" or
             "unauthorized";
+        string message = requiresLogin
+            ? $"La sesión de {ProviderName(profile)} expiró o no existe. Copiá el login y ejecutalo en PowerShell."
+            : failure?.Message ?? "No hay datos del proveedor.";
         return new ProviderCardViewModel(
             profile,
             displayName,
-            string.Empty,
+            ProviderName(profile),
             message,
             requiresLogin,
             false,
@@ -530,37 +832,57 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
             rename);
     }
 
-    private static string ShortIdentity(ProviderIdentity? identity)
+    private static string ProviderName(ProviderProfile profile)
+    {
+        return profile.Provider == "claude" ? "Claude Code" : "Codex";
+    }
+
+    private static string BuildSubtitle(ProviderProfile profile, ProviderIdentity? identity)
     {
         string? email = identity?.AccountEmail?.Trim();
-        if (!string.IsNullOrEmpty(email))
+        if (!string.IsNullOrEmpty(email) && email.IndexOf('@') is int separator && separator > 0)
         {
-            int separator = email.IndexOf('@');
-            return separator > 0 ? email[..separator] : email;
+            email = email[..separator];
         }
 
-        return identity?.Plan?.Trim() ?? string.Empty;
+        string? plan = identity?.Plan?.Trim();
+        if (!string.IsNullOrEmpty(plan))
+        {
+            plan = char.ToUpper(plan[0], CultureInfo.CurrentCulture) + plan[1..];
+        }
+
+        return string.Join(
+            " · ",
+            new[] { ProviderName(profile), plan, email }.Where(part => !string.IsNullOrEmpty(part)));
     }
 }
+
+public sealed record WindowStyleContext(
+    AppearancePalette Palette,
+    AppearanceOptions Options,
+    RgbColor CardBackground,
+    RgbColor ProviderColor,
+    double Gap);
 
 public sealed class RateWindowViewModel : INotifyPropertyChanged
 {
     private static readonly CultureInfo SpanishCulture =
         CultureInfo.GetCultureInfo("es-CR");
 
+    private readonly string _label;
+    private WindowStyleContext? _style;
+
     private RateWindowViewModel(
         string id,
         string label,
         double usedPercent,
-        string remainingLabel,
-        bool isExhausted,
+        int? windowMinutes,
         DateTimeOffset? resetsAt)
     {
         Id = id;
-        Label = label;
-        UsedPercent = usedPercent;
-        RemainingLabel = remainingLabel;
-        IsExhausted = isExhausted;
+        _label = label;
+        UsedPercent = Math.Clamp(usedPercent, 0, 100);
+        WindowMinutes = windowMinutes ?? UsageMath.DefaultWindowMinutes(id);
         ResetsAt = resetsAt;
     }
 
@@ -568,51 +890,187 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
 
     public string Id { get; }
 
-    public string Label { get; }
-
     public double UsedPercent { get; }
 
-    public string UsedPercentLabel => string.Create(
-        CultureInfo.CurrentCulture,
-        $"{UsedPercent:0.#}%");
+    public double RemainingPercent => 100 - UsedPercent;
 
-    public string RemainingLabel { get; }
+    public int? WindowMinutes { get; }
 
-    public bool IsExhausted { get; }
+    public bool IsExhausted => RemainingPercent <= 0;
 
     public DateTimeOffset? ResetsAt { get; }
 
     public bool IsSession => Id.Equals("session", StringComparison.OrdinalIgnoreCase);
 
-    public string CountdownLabel => FormatCountdown(ResetsAt, DateTimeOffset.Now);
-
-    public string AvailabilityCountdownLabel
+    public string Label
     {
         get
         {
-            string countdown = CountdownLabel;
-            const string standardPrefix = "Renueva en ";
-            return countdown.StartsWith(standardPrefix, StringComparison.Ordinal)
-                ? $"Disponible en {countdown[standardPrefix.Length..]}"
-                : countdown switch
-                {
-                    "Renovando ahora" => "Disponible ahora",
-                    "Renovación no disponible" => "Renovación pendiente",
-                    _ => countdown,
-                };
+            string name = Id.ToLowerInvariant() switch
+            {
+                "session" => "Sesión",
+                "weekly" => "Semanal",
+                _ => _label,
+            };
+            return View == ViewMode.Mini && IsSession ? $"{name} · 5 h" : name;
         }
     }
 
-    public string DetailStatusLabel => IsExhausted
-        ? "Límite alcanzado"
-        : CountdownLabel;
+    public double DisplayPercent => ShowUsed ? UsedPercent : RemainingPercent;
+
+    public string PercentLabel => string.Create(
+        CultureInfo.CurrentCulture,
+        $"{Math.Round(DisplayPercent):0}%");
+
+    public string PercentCaption => ShowUsed ? "usado" : "libre";
+
+    public MeterKind MeterKind => Chart switch
+    {
+        ChartKind.Ring => MeterKind.Ring,
+        ChartKind.Gauge => MeterKind.Gauge,
+        ChartKind.Blocks => MeterKind.Blocks,
+        _ => MeterKind.Bar,
+    };
+
+    public bool IsLinear => Chart is ChartKind.Bar or ChartKind.Blocks;
+
+    public bool IsRadial => Chart is ChartKind.Ring or ChartKind.Gauge;
+
+    public bool IsNumbers => Chart == ChartKind.Numbers;
+
+    public Dock RadialDock => View == ViewMode.Mini ? Dock.Top : Dock.Left;
+
+    public Thickness RadialMargin => View == ViewMode.Mini
+        ? new Thickness(0, 0, 0, 8)
+        : new Thickness(0, 0, 12, 0);
+
+    public System.Windows.HorizontalAlignment RadialAlignment => View == ViewMode.Mini
+        ? System.Windows.HorizontalAlignment.Left
+        : System.Windows.HorizontalAlignment.Center;
+
+    public double RadialWidth => Chart == ChartKind.Gauge ? Sizes.Gauge : Sizes.Ring;
+
+    public double RadialHeight => Chart == ChartKind.Gauge
+        ? (Sizes.Gauge / 2) + (RadialThickness / 2)
+        : Sizes.Ring;
+
+    public double RadialThickness => Chart == ChartKind.Gauge
+        ? Math.Round(Sizes.Gauge * 0.14)
+        : Math.Round(Sizes.Ring * 0.12);
+
+    public VerticalAlignment RadialLabelAlignment => Chart == ChartKind.Gauge
+        ? VerticalAlignment.Bottom
+        : VerticalAlignment.Center;
+
+    public double RadialFontSize => Sizes.RadialFont;
+
+    public double LinearThickness => Sizes.Bar;
+
+    public double LinearHeight => Sizes.Bar + (Chart == ChartKind.Blocks ? 6 : 8);
+
+    public int Segments => Sizes.Blocks;
+
+    public double BigFontSize => Sizes.Big;
+
+    public double Marker
+    {
+        get
+        {
+            if (!ShowMarker)
+            {
+                return double.NaN;
+            }
+
+            PaceEstimate pace = Pace;
+            return ShowUsed ? pace.ElapsedFraction * 100 : (1 - pace.ElapsedFraction) * 100;
+        }
+    }
+
+    public Brush? FillBrush => _style?.Palette.Brush(BaseColor.EnsureContrast(_style.CardBackground, 3));
+
+    public Brush? PercentBrush => _style?.Palette.Brush(BaseColor.EnsureContrast(_style.CardBackground, 4.5));
+
+    public Brush? TrackBrush => _style?.Palette.Brush(_style.Palette.Track);
+
+    public Brush? MarkerBrush => _style?.Palette.Brush(_style.Palette.Text);
+
+    public Brush? MutedBrush => _style?.Palette.Brush(_style.Palette.Muted);
+
+    public Thickness CellMargin => new((_style?.Gap ?? 0) / 2, 0, (_style?.Gap ?? 0) / 2, 0);
+
+    public string CountdownLabel
+    {
+        get
+        {
+            if (ResetsAt is not DateTimeOffset resetsAt)
+            {
+                return IsExhausted ? "Límite alcanzado" : "Renovación no disponible";
+            }
+
+            TimeSpan remaining = resetsAt - DateTimeOffset.Now;
+            if (remaining <= TimeSpan.Zero)
+            {
+                return "Renovando ahora";
+            }
+
+            string duration = UsageMath.FormatDuration(remaining);
+            if (IsExhausted)
+            {
+                return $"Vuelve en {duration}";
+            }
+
+            return View == ViewMode.Cards ? $"Se renueva en {duration}" : $"Renueva en {duration}";
+        }
+    }
+
+    public Brush? CountdownBrush
+    {
+        get
+        {
+            if (_style is null)
+            {
+                return null;
+            }
+
+            AppearancePalette palette = _style.Palette;
+            if (!IsExhausted)
+            {
+                return palette.Brush(palette.Muted);
+            }
+
+            RgbColor color = IsResetSoon ? palette.Status.Ok : palette.Status.Warn;
+            return palette.Brush(color.EnsureContrast(_style.CardBackground, 4.5));
+        }
+    }
+
+    public FontWeight CountdownWeight => IsExhausted ? FontWeights.Bold : FontWeights.Medium;
 
     public bool IsResetSoon => ResetsAt is not null &&
         ResetsAt.Value - DateTimeOffset.Now <= TimeSpan.FromMinutes(30);
 
-    public string CompactCountdownLabel => FormatCompactCountdown(
-        ResetsAt,
-        DateTimeOffset.Now);
+    public bool ShowDate => View == ViewMode.Cards &&
+        _style?.Options.Density != Density.Compact &&
+        ResetsAt is not null;
+
+    public string ShortResetLabel
+    {
+        get
+        {
+            if (ResetsAt is not DateTimeOffset resetsAt)
+            {
+                return string.Empty;
+            }
+
+            DateTime local = resetsAt.ToLocalTime().DateTime;
+            DateTime today = DateTime.Today;
+            string day = local.Date == today
+                ? "hoy"
+                : local.Date == today.AddDays(1)
+                    ? "mañana"
+                    : local.ToString("ddd d MMM", SpanishCulture).Replace(".", string.Empty);
+            return $"Renovación: {day} · {local.ToString("h:mm tt", SpanishCulture)}";
+        }
+    }
 
     public string ResetDateLabel => ResetsAt is null
         ? string.Empty
@@ -620,86 +1078,125 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
             "dddd d 'de' MMMM, h:mm tt",
             SpanishCulture);
 
+    public string Tooltip => ResetDateLabel.Length == 0
+        ? $"{Label}: renovación no disponible"
+        : $"{Label}: se renueva el {ResetDateLabel}";
+
+    public bool ShowPace => View == ViewMode.Cards &&
+        _style?.Options.ShowPace == true &&
+        Pace.Kind != PaceKind.Unknown;
+
+    public string PaceLabel => Pace.Kind switch
+    {
+        PaceKind.Exhausted => "Límite alcanzado",
+        PaceKind.RunsOut => $"Se agota en ~{UsageMath.FormatApproximate(Pace.MinutesToEmpty)} a este ritmo",
+        _ => "Al ritmo actual te alcanza",
+    };
+
+    public Brush? PaceBrush
+    {
+        get
+        {
+            if (_style is null)
+            {
+                return null;
+            }
+
+            StatusColors status = _style.Palette.Status;
+            return _style.Palette.Brush(Pace.Kind switch
+            {
+                PaceKind.Exhausted => status.Critical,
+                PaceKind.RunsOut => status.Warn,
+                _ => status.Ok,
+            });
+        }
+    }
+
+    private PaceEstimate Pace => UsageMath.EstimatePace(
+        UsedPercent,
+        WindowMinutes,
+        ResetsAt,
+        DateTimeOffset.Now);
+
+    private bool ShowMarker => _style?.Options.ShowPace == true &&
+        Chart == ChartKind.Bar &&
+        View != ViewMode.Mini &&
+        !IsExhausted &&
+        Pace.Kind != PaceKind.Unknown;
+
+    private ViewMode View => _style?.Options.View ?? ViewMode.Cards;
+
+    private ChartKind Chart => _style?.Options.Chart ?? ChartKind.Bar;
+
+    private bool ShowUsed => _style?.Options.ShowUsed == true;
+
+    private MeterSizes Sizes => MeterSizes.For(View, _style?.Options.Density ?? Density.Comfortable);
+
+    private RgbColor BaseColor
+    {
+        get
+        {
+            if (_style is null)
+            {
+                return RgbColor.White;
+            }
+
+            StatusColors status = _style.Palette.Status;
+            if (IsExhausted)
+            {
+                return status.Critical;
+            }
+
+            return _style.Options.ColorMode switch
+            {
+                ChartColorMode.Level => RemainingPercent < 15
+                    ? status.Critical
+                    : RemainingPercent < 40 ? status.Warn : status.Ok,
+                ChartColorMode.Provider => _style.ProviderColor,
+                _ => _style.Palette.Accent,
+            };
+        }
+    }
+
     public static RateWindowViewModel FromSnapshot(RateWindow window)
     {
-        string remaining = string.Create(
-            CultureInfo.CurrentCulture,
-            $"{window.RemainingPercent:0.#}% disponible");
         return new RateWindowViewModel(
             window.Id,
             window.Label,
             window.UsedPercent,
-            remaining,
-            window.RemainingPercent <= 0,
+            window.WindowMinutes,
             window.ResetsAt);
+    }
+
+    public void ApplyStyle(WindowStyleContext style)
+    {
+        _style = style;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
     }
 
     public void RefreshTimeLabel()
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CountdownLabel)));
-        PropertyChanged?.Invoke(
-            this,
-            new PropertyChangedEventArgs(nameof(AvailabilityCountdownLabel)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DetailStatusLabel)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsResetSoon)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompactCountdownLabel)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
     }
 
-    internal static string FormatCompactCountdown(
-        DateTimeOffset? resetsAt,
-        DateTimeOffset now)
+    private readonly record struct MeterSizes(
+        double Ring,
+        double RadialFont,
+        double Gauge,
+        double Bar,
+        int Blocks,
+        double Big)
     {
-        if (resetsAt is null)
+        public static MeterSizes For(ViewMode view, Density density)
         {
-            return "En --:--";
+            return view switch
+            {
+                ViewMode.Summary => new MeterSizes(40, 11, 64, 6, 12, 22),
+                ViewMode.Mini => new MeterSizes(64, 14, 96, 7, 12, 30),
+                _ => density == Density.Compact
+                    ? new MeterSizes(52, 12, 76, 6, 16, 26)
+                    : new MeterSizes(60, 13, 84, 8, 20, 32),
+            };
         }
-
-        TimeSpan remaining = resetsAt.Value - now;
-        if (remaining <= TimeSpan.Zero)
-        {
-            return "En 00:00";
-        }
-
-        int totalMinutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
-        int hours = totalMinutes / 60;
-        int minutes = totalMinutes % 60;
-        return $"En {hours:00}:{minutes:00}";
-    }
-
-    internal static string FormatCountdown(
-        DateTimeOffset? resetsAt,
-        DateTimeOffset now)
-    {
-        if (resetsAt is null)
-        {
-            return "Renovación no disponible";
-        }
-
-        TimeSpan remaining = resetsAt.Value - now;
-        if (remaining <= TimeSpan.Zero)
-        {
-            return "Renovando ahora";
-        }
-
-        int totalMinutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
-        if (totalMinutes <= 60)
-        {
-            return $"Renueva en {totalMinutes} min";
-        }
-
-        int totalHours = totalMinutes / 60;
-        int minutes = totalMinutes % 60;
-        if (totalHours < 24)
-        {
-            return minutes == 0
-                ? $"Renueva en {totalHours} h"
-                : $"Renueva en {totalHours} h {minutes} min";
-        }
-
-        int days = totalHours / 24;
-        int hours = totalHours % 24;
-        return hours == 0
-            ? $"Renueva en {days} d"
-            : $"Renueva en {days} d {hours} h";
     }
 }

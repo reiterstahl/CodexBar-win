@@ -40,20 +40,36 @@ cuentas por proveedor.
 - Los tokens vencidos de Claude Code se renuevan automáticamente con el refresh token del perfil.
 
 ### Estado de la cuota
+- **Marcador de ritmo**: una línea sobre la barra indica dónde deberías estar si consumieras parejo
+  hasta la renovación, y un aviso te dice si a este ritmo la cuota se agota antes (por ejemplo,
+  *se agota en ~20 h a este ritmo*).
 - Cuando **Sesión** o **Semanal** llega a 0 %, la tarjeta se marca en rojo y baja debajo de las cuentas
   que todavía tienen cuota.
-- La tarjeta agotada muestra **"Disponible en …"** en ámbar, que pasa a verde cuando faltan 30 minutos
+- La tarjeta agotada muestra **"Vuelve en …"** en ámbar, que pasa a verde cuando faltan 30 minutos
   o menos para la renovación.
-- Cuando la cuota vuelve, la tarjeta regresa arriba y parpadea suavemente en verde hasta que hacés
-  clic en ella.
+- Cuando la cuota vuelve, la tarjeta regresa arriba con **"Disponible otra vez"** y parpadea suavemente
+  en verde hasta que hacés clic en ella. Opcionalmente, Windows muestra una notificación.
+- El pie de la ventana indica cuál es la próxima cuenta que recupera cuota.
+
+### Personalización
+- **Temas**: Grafito, Medianoche, Claro, Papel y Alto contraste.
+- **Color de acento**: seis predefinidos, cualquier color del selector o un código `#RRGGBB`. Si el
+  color elegido no se lee bien sobre el tema, se ajusta automáticamente para mantener el contraste.
+- **Tipo de gráfico**: barras, anillos, medidor, bloques o números grandes.
+- **Color de los gráficos**: según el acento, por nivel de cuota (verde, ámbar o rojo) o un color
+  elegible por proveedor.
+- Porcentaje **disponible** o **usado**, densidad cómoda o compacta y **escala** del 80 % al 160 %,
+  útil en monitores 4K.
+- Todo se aplica al instante y se guarda solo.
 
 ### Ventana y bandeja
-- Ícono en el área de notificación: clic para mostrar u ocultar; menú con *Abrir*, *Actualizar* y *Salir*.
-- **Vista de tarjetas** con todo el detalle, o **vista Resumen** horizontal y compacta, que muestra solo
-  la sesión y su cuenta regresiva.
-- **Siempre visible** (◆), minimizar a la barra de tareas y ocultar a la bandeja sin cerrar la app.
-- Recuerda la posición donde arrastraste la ventana.
-- **Escala de la interfaz** del 80 % al 160 % (botón **Aa**), útil en monitores 4K.
+- Tres vistas: **Tarjetas** con todo el detalle, **Resumen** con una fila por cuenta y **Mini**, una
+  grilla compacta con la sesión de cada cuenta.
+- **Ícono dinámico** en el área de notificación: muestra la sesión y la semana de la cuenta más
+  limitada, con un punto rojo si hay una agotada o verde si una acaba de recuperarse.
+- Menú de la bandeja con *Abrir*, *Actualizar*, *Personalizar…* y *Salir*.
+- **Siempre visible**, minimizar a la barra de tareas y ocultar a la bandeja sin cerrar la app.
+- La ventana se arrastra desde el encabezado o desde cualquier tarjeta y recuerda su posición.
 - Actualiza los datos cada 5 minutos; la cuenta regresiva avanza cada minuto sin volver a consultar
   a los proveedores.
 
@@ -127,7 +143,7 @@ credenciales de Codex ni de Claude. Para borrar también las preferencias:
 - **CodexBar no guarda credenciales.** Lee los archivos que ya administran los CLI
   (`.codex\auth.json`, `.claude\.credentials.json`) y no copia tokens a su propia configuración.
 - `%LOCALAPPDATA%\CodexBar\settings.json` solo contiene preferencias de presentación: nombres de las
-  cuentas, vista, escala, posición y siempre visible.
+  cuentas, vista, tema, colores, tipo de gráfico, escala, posición y opciones de comportamiento.
 - La app de bandeja **no lee archivos de credenciales**. Ejecuta el motor como proceso hijo, con lista
   de argumentos (sin shell), un timeout de 45 s y un límite de respuesta. Solo acepta JSON con versión
   de esquema conocida.
@@ -149,7 +165,7 @@ credenciales de Codex ni de Claude. Para borrar también las preferencias:
 | --- | --- | --- |
 | Motor portable | `Sources/CodexBarPortableCore`, `Sources/CodexBarWindowsEngine` | Swift con Foundation únicamente; consulta los límites y emite el snapshot JSON |
 | Cliente del motor | `Windows/CodexBar.EngineClient` | Lanza el motor, valida el esquema y descubre perfiles |
-| App de bandeja | `Windows/CodexBar.Windows.Tray` | WPF sobre .NET 10, sin dependencias externas |
+| App de bandeja | `Windows/CodexBar.Windows.Tray` | WPF sobre .NET 10, sin dependencias externas; temas y gráficos propios (`Appearance/`, `UsageMeter`) |
 | Scripts | `Windows/*.ps1` | Publicar, instalar, actualizar, desinstalar y agregar cuentas |
 
 La app de macOS y `CodexBarCore` del proyecto original siguen en el repositorio sin cambios.
@@ -188,7 +204,6 @@ Los detalles técnicos (contrato del snapshot, límites del proceso, empaquetado
 - Soporte de Windows Credential Manager antes de que CodexBar administre secretos propios.
 - Firma de binarios y paquete (y opcionalmente MSIX/MSI).
 - Tests de paridad con los mapeos maduros de Codex y Claude de macOS/Linux.
-- Rediseño visual con temas y colores personalizables.
 
 Fuera de alcance por ahora: cookies de navegador, WebView2, ConPTY y proveedores distintos de Codex y
 Claude Code.

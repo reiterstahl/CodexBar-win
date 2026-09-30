@@ -82,11 +82,11 @@ does not copy tokens or change your primary Codex and Claude Code sessions.
 Window controls
 ---------------
 
-Click an account name to rename it. Names, compact-summary mode, and the
-always-on-top preference are stored in your local CodexBar settings; OAuth
-credentials remain in the provider-owned directories.
+Click an account name to rename it. Names and every appearance preference are
+stored in your local CodexBar settings; OAuth credentials remain in the
+provider-owned directories.
 
-When an account is signed out, its card shows a Copy login button. It copies a
+When an account is signed out, its card shows a "Copiar login" button. It copies a
 PowerShell block for that specific profile without copying any credentials:
 Codex uses device-code login and Claude Code uses its auth-login command. For
 Claude's code prompt, use right-click or Shift+Insert; the pasted code may not
@@ -96,26 +96,40 @@ When a Claude Code access token expires, CodexBar refreshes it automatically
 using that profile's existing refresh token. A browser login is only needed if
 Claude Code has revoked the profile session.
 
-The Aa button opens appearance settings. Use A-/A+ to scale the entire
-interface from 80% to 160%; 100% restores the default. The selected scale is
-saved automatically, which is useful on high-resolution and 4K monitors.
+The header switches between three views: Cards (full detail), Summary (one
+row per account) and Mini (a compact 2-column grid with each session). It also
+refreshes, toggles always-on-top (pin), opens Customize, minimizes to the
+taskbar and hides to the notification area without exiting CodexBar. Drag the
+header or any card background to move the window; the last position is
+restored later.
 
-The Summary button switches to a compact landscape view with only each
-account's session graph and reset countdown. The diamond button
-toggles always-on-top. Minimize sends the window to the taskbar; close hides
-it to the notification area without exiting CodexBar. Losing focus does not hide or reposition the
-window; the last position selected by dragging the header is restored later.
+The Customize button (sliders icon) opens a panel with:
+
+  - Theme: Grafito, Medianoche, Claro, Papel or high contrast.
+  - Accent color: six presets, any color from the color picker, or #RRGGBB.
+  - Chart type: bars, rings, gauge, blocks or large numbers.
+  - Chart colors: accent, by quota level, or one color per provider.
+  - Percentage shown as available or used, view, density, and interface
+    size from 80% to 160% for high-resolution and 4K monitors.
+  - Pace marker, available accounts first, Windows notification when a quota
+    returns, dynamic notification-area icon, and always-on-top.
+
+Changes apply instantly and are saved automatically.
+
+The pace marker draws a thin line on each bar where usage would be if it were
+spread evenly until the reset, and warns when the current rate would exhaust
+the quota before it renews.
+
 When Session or Weekly reaches 0% available, the account card gets a subtle red
-background and moves below accounts that still have quota. When both quotas
-become available again, the card returns to the upper section and softly
-flashes green. Click that card to dismiss its alert. The notification-area icon
-stays unchanged and no longer adds a separate green status badge. An exhausted
-card prominently shows "Available in ..." in amber, changing to green when the
-reset is 30 minutes away or less. Its quota row says "Limit reached" and keeps
-the complete reset date instead of repeating the same countdown.
-The card layout is condensed so the normal four-account setup requires no
-vertical scrollbar. Reset timing is shown as a live countdown, prioritizing
-the short session in Summary view, with the full localized reset date beneath
-each quota.
+background and moves below accounts that still have quota. It shows
+"Vuelve en ..." in amber, changing to green when the reset is 30 minutes away
+or less. When both quotas become available again, the card returns to the
+upper section, shows "Disponible otra vez" and softly flashes green. Click that
+card to dismiss its alert.
+
+The dynamic notification-area icon shows the session (thick bar) and weekly
+(thin bar) quota of the most limited account, plus a red dot when an account is
+exhausted or a green dot when one has just recovered.
+
 Claude and Codex cards show only Session and Weekly; redundant model-specific
 weekly quotas are omitted.

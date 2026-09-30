@@ -45,9 +45,10 @@ public sealed class AppSettingsStore
         Save();
     }
 
-    public void SetCompactView(bool value)
+    public void Update(Action<AppSettings> change)
     {
-        Settings.CompactView = value;
+        change(Settings);
+        Settings.Normalize();
         Save();
     }
 
@@ -76,35 +77,34 @@ public sealed class AppSettingsStore
         {
             if (!File.Exists(_path))
             {
-                return new AppSettings();
+                return CreateDefaults();
             }
 
             string json = File.ReadAllText(_path);
             AppSettings settings = JsonSerializer.Deserialize<AppSettings>(json, SerializerOptions)
                 ?? new AppSettings();
-            settings.AccountNames = new Dictionary<string, string>(
-                settings.AccountNames ?? new Dictionary<string, string>(),
-                StringComparer.OrdinalIgnoreCase);
-            if (!double.IsFinite(settings.UiScale) ||
-                settings.UiScale < MainWindowViewModel.MinimumUiScale ||
-                settings.UiScale > MainWindowViewModel.MaximumUiScale)
-            {
-                settings.UiScale = 1.0;
-            }
+            settings.Normalize();
             return settings;
         }
         catch (IOException)
         {
-            return new AppSettings();
+            return CreateDefaults();
         }
         catch (UnauthorizedAccessException)
         {
-            return new AppSettings();
+            return CreateDefaults();
         }
         catch (JsonException)
         {
-            return new AppSettings();
+            return CreateDefaults();
         }
+    }
+
+    private static AppSettings CreateDefaults()
+    {
+        var settings = new AppSettings();
+        settings.Normalize();
+        return settings;
     }
 
     private void Save()
@@ -137,7 +137,10 @@ public sealed class AppSettings
     public Dictionary<string, string> AccountNames { get; set; } =
         new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Legacy flag kept in sync with <see cref="ViewMode"/> for older builds.</summary>
     public bool CompactView { get; set; }
+
+    public string? ViewMode { get; set; }
 
     public bool AlwaysOnTop { get; set; }
 
@@ -146,4 +149,78 @@ public sealed class AppSettings
     public double? WindowLeft { get; set; }
 
     public double? WindowTop { get; set; }
+
+    public string? Theme { get; set; }
+
+    public string? AccentColor { get; set; }
+
+    public string? ChartKind { get; set; }
+
+    public string? ColorMode { get; set; }
+
+    public string? CodexColor { get; set; }
+
+    public string? ClaudeColor { get; set; }
+
+    public string? Density { get; set; }
+
+    public bool ShowUsedPercent { get; set; }
+
+    public bool ShowPace { get; set; } = true;
+
+    public bool AvailableFirst { get; set; } = true;
+
+    public bool NotifyOnRecovery { get; set; } = true;
+
+    public bool DynamicTrayIcon { get; set; } = true;
+
+    public void Normalize()
+    {
+        AccountNames = new Dictionary<string, string>(
+            AccountNames ?? new Dictionary<string, string>(),
+            StringComparer.OrdinalIgnoreCase);
+        if (!double.IsFinite(UiScale) ||
+            UiScale < MainWindowViewModel.MinimumUiScale ||
+            UiScale > MainWindowViewModel.MaximumUiScale)
+        {
+            UiScale = 1.0;
+        }
+
+        Tray.ViewMode view = ThemeCatalog.ParseOption(
+            ViewMode,
+            CompactView ? Tray.ViewMode.Summary : Tray.ViewMode.Cards);
+        ViewMode = ThemeCatalog.FormatOption(view);
+        CompactView = view == Tray.ViewMode.Summary;
+        Theme = ThemeCatalog.Find(Theme).Id;
+        AccentColor = NormalizeColor(AccentColor, ThemeCatalog.DefaultAccent);
+        CodexColor = NormalizeColor(CodexColor, ThemeCatalog.DefaultCodexColor);
+        ClaudeColor = NormalizeColor(ClaudeColor, ThemeCatalog.DefaultClaudeColor);
+        ChartKind = ThemeCatalog.FormatOption(ThemeCatalog.ParseOption(ChartKind, Tray.ChartKind.Bar));
+        ColorMode = ThemeCatalog.FormatOption(ThemeCatalog.ParseOption(ColorMode, ChartColorMode.Accent));
+        Density = ThemeCatalog.FormatOption(ThemeCatalog.ParseOption(Density, Tray.Density.Comfortable));
+    }
+
+    public void ResetAppearance()
+    {
+        Theme = null;
+        AccentColor = null;
+        CodexColor = null;
+        ClaudeColor = null;
+        ChartKind = null;
+        ColorMode = null;
+        Density = null;
+        ViewMode = null;
+        CompactView = false;
+        UiScale = 1.0;
+        ShowUsedPercent = false;
+        ShowPace = true;
+        AvailableFirst = true;
+        NotifyOnRecovery = true;
+        DynamicTrayIcon = true;
+    }
+
+    private static string NormalizeColor(string? value, string fallback)
+    {
+        return RgbColor.TryParse(value, out RgbColor color) ? color.ToHex() : fallback;
+    }
 }

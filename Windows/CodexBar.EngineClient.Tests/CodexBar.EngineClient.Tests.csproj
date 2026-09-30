@@ -5,6 +5,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Framework-independent appearance math from the WPF tray, compiled here for testing. -->
+    <Compile Include="..\CodexBar.Windows.Tray\Appearance\ColorMath.cs" Link="Appearance\ColorMath.cs" />
+    <Compile Include="..\CodexBar.Windows.Tray\Appearance\ThemeCatalog.cs" Link="Appearance\ThemeCatalog.cs" />
+    <Compile Include="..\CodexBar.Windows.Tray\Appearance\UsageMath.cs" Link="Appearance\UsageMath.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CodexBar.EngineClient\CodexBar.EngineClient.csproj" />
   </ItemGroup>
 </Project>
