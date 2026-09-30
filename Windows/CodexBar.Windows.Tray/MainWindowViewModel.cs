@@ -83,7 +83,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _ => 520,
     };
 
-    public bool ShowFooter => !IsMiniView;
+    public string RefreshButtonLabel => _isRefreshing ? "Actualizando…" : "Actualizar";
 
     public string Status
     {
@@ -217,7 +217,6 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsSummaryView));
         OnPropertyChanged(nameof(IsMiniView));
         OnPropertyChanged(nameof(BaseWidth));
-        OnPropertyChanged(nameof(ShowFooter));
         OnPropertyChanged(nameof(FooterDotBrush));
         Customization.Refresh();
         AppearanceChanged?.Invoke(this, EventArgs.Empty);
@@ -230,6 +229,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(Status));
         OnPropertyChanged(nameof(CanRefresh));
         OnPropertyChanged(nameof(IsRefreshing));
+        OnPropertyChanged(nameof(RefreshButtonLabel));
     }
 
     public void EndRefresh()
@@ -238,6 +238,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(Status));
         OnPropertyChanged(nameof(CanRefresh));
         OnPropertyChanged(nameof(IsRefreshing));
+        OnPropertyChanged(nameof(RefreshButtonLabel));
     }
 
     public void Apply(IReadOnlyList<ProviderProfileResult> results)

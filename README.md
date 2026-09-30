@@ -68,6 +68,7 @@ cuentas por proveedor.
   grilla compacta con la sesión de cada cuenta.
 - **Ícono dinámico** en el área de notificación: muestra la sesión y la semana de la cuenta más
   limitada, con un punto rojo si hay una agotada o verde si una acaba de recuperarse.
+- Botón **Actualizar** grande al pie de la ventana, en todas las vistas.
 - Menú de la bandeja con *Abrir*, *Actualizar*, *Personalizar…* y *Salir*.
 - **Siempre visible**, minimizar a la barra de tareas y ocultar a la bandeja sin cerrar la app.
 - La ventana se arrastra desde el encabezado o desde cualquier tarjeta y recuerda su posición.

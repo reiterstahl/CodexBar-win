@@ -346,44 +346,6 @@
                         </StackPanel>
                     </Border>
 
-                    <Button
-                        AutomationProperties.Name="Actualizar ahora"
-                        Click="RefreshButton_Click"
-                        IsEnabled="{Binding CanRefresh}"
-                        Style="{StaticResource IconButtonStyle}"
-                        ToolTip="Actualizar ahora">
-                        <Viewbox Width="17" Height="17" RenderTransformOrigin="0.5,0.5">
-                            <Viewbox.RenderTransform>
-                                <RotateTransform />
-                            </Viewbox.RenderTransform>
-                            <Viewbox.Style>
-                                <Style TargetType="Viewbox">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsRefreshing}" Value="True">
-                                            <DataTrigger.EnterActions>
-                                                <BeginStoryboard x:Name="RefreshSpin">
-                                                    <Storyboard>
-                                                        <DoubleAnimation
-                                                            RepeatBehavior="Forever"
-                                                            Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
-                                                            From="0"
-                                                            To="360"
-                                                            Duration="0:0:0.9" />
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </DataTrigger.EnterActions>
-                                            <DataTrigger.ExitActions>
-                                                <StopStoryboard BeginStoryboardName="RefreshSpin" />
-                                            </DataTrigger.ExitActions>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Viewbox.Style>
-                            <Canvas Width="24" Height="24">
-                                <Path Data="M20,12 A8,8 0 1 1 17.66,6.34 M20,4 V9 H15" Style="{StaticResource IconPathStyle}" />
-                            </Canvas>
-                        </Viewbox>
-                    </Button>
                     <ToggleButton
                         AutomationProperties.Name="Siempre visible"
                         IsChecked="{Binding IsAlwaysOnTop}"
@@ -431,10 +393,52 @@
                 </StackPanel>
             </Grid>
 
-            <DockPanel
-                Margin="16,2,16,14"
-                DockPanel.Dock="Bottom"
-                Visibility="{Binding ShowFooter, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <DockPanel Margin="16,2,12,12" DockPanel.Dock="Bottom">
+                <Button
+                    MinWidth="132"
+                    Margin="12,0,0,0"
+                    Padding="14,8"
+                    AutomationProperties.Name="Actualizar ahora"
+                    Click="RefreshButton_Click"
+                    DockPanel.Dock="Right"
+                    IsEnabled="{Binding CanRefresh}"
+                    Style="{StaticResource RefreshButtonStyle}"
+                    ToolTip="Consulta las cuentas ahora. También se actualiza sola cada 5 minutos.">
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="16" Height="16" Margin="0,0,8,0" RenderTransformOrigin="0.5,0.5">
+                            <Viewbox.RenderTransform>
+                                <RotateTransform />
+                            </Viewbox.RenderTransform>
+                            <Viewbox.Style>
+                                <Style TargetType="Viewbox">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRefreshing}" Value="True">
+                                            <DataTrigger.EnterActions>
+                                                <BeginStoryboard x:Name="RefreshSpin">
+                                                    <Storyboard>
+                                                        <DoubleAnimation
+                                                            RepeatBehavior="Forever"
+                                                            Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                            From="0"
+                                                            To="360"
+                                                            Duration="0:0:0.9" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.EnterActions>
+                                            <DataTrigger.ExitActions>
+                                                <StopStoryboard BeginStoryboardName="RefreshSpin" />
+                                            </DataTrigger.ExitActions>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Viewbox.Style>
+                            <Canvas Width="24" Height="24">
+                                <Path Data="M20,12 A8,8 0 1 1 17.66,6.34 M20,4 V9 H15" Style="{StaticResource IconPathStyle}" />
+                            </Canvas>
+                        </Viewbox>
+                        <TextBlock VerticalAlignment="Center" FontSize="13" Text="{Binding RefreshButtonLabel}" />
+                    </StackPanel>
+                </Button>
                 <Ellipse
                     Width="7"
                     Height="7"
@@ -442,12 +446,7 @@
                     VerticalAlignment="Center"
                     Fill="{Binding FooterDotBrush}" />
                 <TextBlock
-                    Margin="10,0,0,0"
-                    DockPanel.Dock="Right"
-                    FontSize="12"
-                    Foreground="{DynamicResource SecondaryTextBrush}"
-                    Text="Consulta cada 5 min" />
-                <TextBlock
+                    VerticalAlignment="Center"
                     FontSize="12"
                     Foreground="{DynamicResource SecondaryTextBrush}"
                     Text="{Binding FooterText}"

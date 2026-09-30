@@ -155,8 +155,10 @@ presiona **Refresh**. Con dos cuentas por proveedor deben aparecer:
 
 Puedes hacer clic en el nombre de cada cuenta para cambiarlo. Los botones del
 encabezado cambian entre las vistas **Tarjetas**, **Resumen** y **Mini**,
-actualizan los datos, activan **Siempre visible** (chincheta), abren
-**Personalizar**, minimizan o esconden la ventana en el área de notificación.
+activan **Siempre visible** (chincheta), abren **Personalizar**, minimizan o
+esconden la ventana en el área de notificación. El botón **Actualizar**, al pie
+de la ventana, consulta las cuentas en el momento; además se actualizan solas
+cada 5 minutos.
 
 **Personalizar** permite elegir tema (Grafito, Medianoche, Claro, Papel o Alto
 contraste), color de acento (seis predefinidos, cualquier color o un código

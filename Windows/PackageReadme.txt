@@ -98,8 +98,9 @@ Claude Code has revoked the profile session.
 
 The header switches between three views: Cards (full detail), Summary (one
 row per account) and Mini (a compact 2-column grid with each session). It also
-refreshes, toggles always-on-top (pin), opens Customize, minimizes to the
-taskbar and hides to the notification area without exiting CodexBar. Drag the
+toggles always-on-top (pin), opens Customize, minimizes to the taskbar and
+hides to the notification area without exiting CodexBar. The large Actualizar
+button at the bottom refreshes every account immediately. Drag the
 header or any card background to move the window; the last position is
 restored later.
 
