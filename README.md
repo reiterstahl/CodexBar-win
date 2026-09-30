@@ -133,8 +133,7 @@ Hay una guía paso a paso, desde una PC nueva (instalación de los CLI y cuentas
 
 ### Agregar cuentas secundarias
 
-La forma más fácil: en **Personalizar → Cuentas**, tocá **Agregar cuenta de Codex** o **Agregar cuenta de
-Claude Code**. CodexBar elige el siguiente perfil libre (`.codex-2`, `.codex-3`, …), copia el comando de
+La forma más fácil: en **Personalizar → Cuentas**, tocá **Agregar Codex** o **Agregar Claude Code**. CodexBar elige el siguiente perfil libre (`.codex-2`, `.codex-3`, …), copia el comando de
 PowerShell para iniciar sesión y te ofrece **Abrir en PowerShell** para ejecutarlo directo. Al terminar,
 tocá **Actualizar** y la cuenta nueva aparece.
 

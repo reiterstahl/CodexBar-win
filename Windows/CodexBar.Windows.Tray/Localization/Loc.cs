@@ -205,8 +205,8 @@ public sealed class Loc : INotifyPropertyChanged
             ["AccountsHint"] = (
                 "Crea un perfil aislado y genera el comando de PowerShell para iniciar sesión. Tus cuentas actuales no cambian.",
                 "Creates an isolated profile and the PowerShell command to sign in. Your current accounts are not changed."),
-            ["AddCodexAccount"] = ("Agregar cuenta de Codex", "Add Codex account"),
-            ["AddClaudeAccount"] = ("Agregar cuenta de Claude Code", "Add Claude Code account"),
+            ["AddCodexAccount"] = ("Agregar Codex", "Add Codex"),
+            ["AddClaudeAccount"] = ("Agregar Claude Code", "Add Claude Code"),
             ["AccountCommandReady"] = (
                 "Comando copiado para el perfil {0}. Pegalo en PowerShell con clic derecho y seguí las instrucciones; al terminar, tocá Actualizar.",
                 "Command copied for profile {0}. Paste it in PowerShell with right-click and follow the prompts; when done, select Refresh."),

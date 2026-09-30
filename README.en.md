@@ -130,7 +130,7 @@ Spanish at [docs/windows-installation.es.md](docs/windows-installation.es.md).
 
 ### Adding secondary accounts
 
-The easiest way: in **Customize → Accounts**, select **Add Codex account** or **Add Claude Code account**.
+The easiest way: in **Customize → Accounts**, select **Add Codex** or **Add Claude Code**.
 CodexBar picks the next free profile (`.codex-2`, `.codex-3`, …), copies the PowerShell sign-in command,
 and offers **Open in PowerShell** to run it directly. When you finish, select **Refresh** and the new
 account appears.

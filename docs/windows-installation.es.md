@@ -114,7 +114,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 ## 5. Añadir las cuentas secundarias
 
 La forma más simple es desde la app: abre **Personalizar → Cuentas** y elige
-**Agregar cuenta de Codex** o **Agregar cuenta de Claude Code**. CodexBar crea
+**Agregar Codex** o **Agregar Claude Code**. CodexBar crea
 el siguiente perfil libre, copia el comando de inicio de sesión y ofrece
 **Abrir en PowerShell** para ejecutarlo. Al terminar, toca **Actualizar**.
 
