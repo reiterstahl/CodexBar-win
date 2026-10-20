@@ -211,6 +211,23 @@ dotnet tool install -g vpk --version 1.2.161
 
 ## Tray process boundary
 
+### Taskbar icon lifecycle
+
+The window supplies its persistent small/large native icons for `WM_GETICON`, including
+`ICON_SMALL2`. After Explorer sends `TaskbarButtonCreated`, a deferred shell update clears
+the empty overlay through `ITaskbarList3::SetOverlayIcon` to refresh the taskbar image.
+Window creation or `ContentRendered` alone does not establish that the taskbar button is ready.
+The handler also runs when Explorer recreates the button. No timers or window movement are needed.
+See Microsoft's [taskbar readiness contract](https://learn.microsoft.com/en-us/windows/win32/shell/taskbar-extensions)
+and the same shell redraw used in [Avalonia's Win32 implementation](https://github.com/AvaloniaUI/Avalonia/blob/master/src/Windows/Avalonia.Win32/WindowImpl.cs).
+
+Desktop regression check: fully exit via **Exit**, start the freshly installed build, open it
+from the notification area, and inspect the taskbar immediately without moving or minimizing
+the window. Also verify hide/reopen, minimize/restore, and an Explorer restart. A successful
+cross-build on Linux cannot validate Explorer's actual rendering.
+
+### Engine isolation
+
 The tray launches the engine as a short-lived child process every five minutes or after a manual
 refresh. Multi-account profiles each receive an independent child process. Each process uses
 `UseShellExecute=false`, an argument list rather than a shell command,

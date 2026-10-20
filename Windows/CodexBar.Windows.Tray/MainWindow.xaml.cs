@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -12,17 +13,12 @@ public partial class MainWindow : Window
 {
     private const int GclpHIcon = -14;
     private const int GclpHIconSmall = -34;
+    private const int WmGetIcon = 0x007F;
     private const int WmSetIcon = 0x0080;
-    private const uint SwpNoSize = 0x0001;
-    private const uint SwpNoMove = 0x0002;
-    private const uint SwpNoZOrder = 0x0004;
-    private const uint SwpNoActivate = 0x0010;
-    private const uint SwpFrameChanged = 0x0020;
-    private const uint RedrawInvalidate = 0x0001;
-    private const uint RedrawUpdateNow = 0x0100;
-    private const uint RedrawFrame = 0x0400;
+    private static readonly uint TaskbarButtonCreatedMessage = RegisterWindowMessage("TaskbarButtonCreated");
     private static readonly IntPtr IconSmall = IntPtr.Zero;
     private static readonly IntPtr IconBig = new(1);
+    private static readonly IntPtr IconSmall2 = new(2);
 
     private readonly AppSettingsStore _settingsStore;
     private readonly DispatcherTimer _recoveryAlertTimer;
@@ -31,9 +27,12 @@ public partial class MainWindow : Window
     private MemoryStream? _taskbarSmallIconStream;
     private MemoryStream? _taskbarLargeIconStream;
     private SettingsWindow? _settingsWindow;
+    private HwndSource? _windowSource;
     private bool _allowClose;
     private bool _positionInitialized;
     private bool _taskbarIconRefreshQueued;
+    private bool _taskbarButtonReady;
+    private bool _isClosed;
 
     public MainWindow(AppSettingsStore settingsStore)
     {
@@ -51,6 +50,13 @@ public partial class MainWindow : Window
         ApplyViewMode();
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         Deactivated += (_, _) => SaveWindowPosition();
+        IsVisibleChanged += (_, _) =>
+        {
+            if (!IsVisible)
+            {
+                _taskbarButtonReady = false;
+            }
+        };
         ContentRendered += (_, _) => QueueTaskbarIconRefresh();
         StateChanged += (_, _) =>
         {
@@ -90,7 +96,7 @@ public partial class MainWindow : Window
         }
         Show();
         UpdateLayout();
-        ApplyTaskbarIcons(refreshNativeFrame: false);
+        ApplyTaskbarIcons();
         EnsureWindowPosition();
         Activate();
         QueueTaskbarIconRefresh();
@@ -104,10 +110,9 @@ public partial class MainWindow : Window
 
     protected override void OnSourceInitialized(EventArgs e)
     {
-        // Windows 11 can ask for the taskbar icon while WPF is still completing
-        // source initialization. Set the HWND and window-class icons before WPF
-        // raises SourceInitialized so Explorer never observes the generic icon.
-        ApplyTaskbarIcons(refreshNativeFrame: false);
+        ApplyTaskbarIcons();
+        _windowSource = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+        _windowSource?.AddHook(WindowMessageHook);
         base.OnSourceInitialized(e);
     }
 
@@ -126,6 +131,12 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _isClosed = true;
+        if (_windowSource is { IsDisposed: false })
+        {
+            _windowSource.RemoveHook(WindowMessageHook);
+        }
+        _windowSource = null;
         _recoveryAlertTimer.Stop();
         _taskbarSmallIcon?.Dispose();
         _taskbarLargeIcon?.Dispose();
@@ -329,7 +340,40 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ApplyTaskbarIcons(bool refreshNativeFrame)
+    private IntPtr WindowMessageHook(
+        IntPtr windowHandle,
+        int message,
+        IntPtr wordParameter,
+        IntPtr longParameter,
+        ref bool handled)
+    {
+        if (TaskbarButtonCreatedMessage != 0 && (uint)message == TaskbarButtonCreatedMessage)
+        {
+            // The HWND can exist long before Explorer creates its taskbar button.
+            // This also runs when Explorer recreates the button after a restart.
+            _taskbarButtonReady = true;
+            QueueTaskbarIconRefresh();
+        }
+        else if (message == WmGetIcon)
+        {
+            // Answer Explorer's first icon request directly, including ICON_SMALL2.
+            // Keep these HICONs alive until the native window has been destroyed.
+            IntPtr icon = wordParameter == IconBig
+                ? _taskbarLargeIcon?.Handle ?? IntPtr.Zero
+                : wordParameter == IconSmall || wordParameter == IconSmall2
+                    ? _taskbarSmallIcon?.Handle ?? IntPtr.Zero
+                    : IntPtr.Zero;
+            if (icon != IntPtr.Zero)
+            {
+                handled = true;
+                return icon;
+            }
+        }
+
+        return IntPtr.Zero;
+    }
+
+    private void ApplyTaskbarIcons()
     {
         IntPtr windowHandle = new WindowInteropHelper(this).Handle;
         if (windowHandle == IntPtr.Zero)
@@ -349,31 +393,11 @@ public partial class MainWindow : Window
             SetClassLongPtr(windowHandle, GclpHIcon, _taskbarLargeIcon.Handle);
             SendMessage(windowHandle, WmSetIcon, IconBig, _taskbarLargeIcon.Handle);
         }
-
-        if (refreshNativeFrame)
-        {
-            // Explorer can retain WPF's provisional icon until it sees a native frame
-            // update. This reproduces the refresh caused by moving the window without
-            // changing its position, dimensions, activation, or Z order.
-            SetWindowPos(
-                windowHandle,
-                IntPtr.Zero,
-                0,
-                0,
-                0,
-                0,
-                SwpNoMove | SwpNoSize | SwpNoZOrder | SwpNoActivate | SwpFrameChanged);
-            RedrawWindow(
-                windowHandle,
-                IntPtr.Zero,
-                IntPtr.Zero,
-                RedrawInvalidate | RedrawUpdateNow | RedrawFrame);
-        }
     }
 
     private void QueueTaskbarIconRefresh()
     {
-        if (_taskbarIconRefreshQueued)
+        if (_isClosed || _taskbarIconRefreshQueued)
         {
             return;
         }
@@ -384,7 +408,16 @@ public partial class MainWindow : Window
             new Action(() =>
             {
                 _taskbarIconRefreshQueued = false;
-                ApplyTaskbarIcons(refreshNativeFrame: true);
+                if (_isClosed || !IsVisible)
+                {
+                    return;
+                }
+
+                ApplyTaskbarIcons();
+                if (_taskbarButtonReady)
+                {
+                    TaskbarShell.RefreshIcon(new WindowInteropHelper(this).Handle);
+                }
             }));
     }
 
@@ -403,6 +436,7 @@ public partial class MainWindow : Window
             var iconResource = System.Windows.Application.GetResourceStream(iconUri);
             if (iconResource is null)
             {
+                Trace.TraceError("The embedded CodexBar taskbar icon is missing.");
                 return;
             }
 
@@ -416,8 +450,9 @@ public partial class MainWindow : Window
             _taskbarSmallIcon = new System.Drawing.Icon(_taskbarSmallIconStream, 16, 16);
             _taskbarLargeIcon = new System.Drawing.Icon(_taskbarLargeIconStream, 32, 32);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            Trace.TraceError($"Could not load the CodexBar taskbar icon: {exception.Message}");
             _taskbarSmallIcon?.Dispose();
             _taskbarLargeIcon?.Dispose();
             _taskbarSmallIconStream?.Dispose();
@@ -442,22 +477,6 @@ public partial class MainWindow : Window
         int index,
         IntPtr newValue);
 
-    [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetWindowPos(
-        IntPtr windowHandle,
-        IntPtr insertAfter,
-        int x,
-        int y,
-        int width,
-        int height,
-        uint flags);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool RedrawWindow(
-        IntPtr windowHandle,
-        IntPtr updateRectangle,
-        IntPtr updateRegion,
-        uint flags);
+    [DllImport("user32.dll", EntryPoint = "RegisterWindowMessageW", CharSet = CharSet.Unicode)]
+    private static extern uint RegisterWindowMessage(string message);
 }
