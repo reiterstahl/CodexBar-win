@@ -12,6 +12,25 @@ struct PortableClaudeResetCreditsTests {
         rateLimitTier: nil, subscriptionType: "pro")
 
     @Test
+    func `two reset grants with offset timestamps appear using current Claude Code identity`() async throws {
+        let now = try #require(ISO8601DateFormatter().date(from: "2026-11-10T22:00:00Z"))
+        let transport = ResetTransport(status: 200, data: self.payload("""
+        {"eligible":true,"grants":[
+          {"resets_left":1,"paused":false,"starts_at":"2026-11-09T18:00:00+00:00",
+           "ends_at":"2026-11-17T07:59:00+00:00"},
+          {"resets_left":1,"paused":false,"starts_at":"2026-11-10T21:30:00+00:00",
+           "ends_at":"2026-12-10T22:00:00+00:00"}
+        ]}
+        """))
+        let result = try await PortableClaudeProvider.fetch(
+            credentials: self.credentials, claudeCodeVersion: "2.1.283", transport: transport, now: now)
+        #expect(result.resetCredits?.availableCount == 2)
+        #expect(result.resetCredits?.credits.count == 2)
+        #expect(await transport.requests.first?.value(forHTTPHeaderField: "User-Agent")
+            == "claude-cli/2.1.283 (external, cli)")
+    }
+
+    @Test
     func `saved resets share Claude snapshot and exclude unavailable grants`() throws {
         let data = self.payload("""
         {"eligible":true,"grants":[

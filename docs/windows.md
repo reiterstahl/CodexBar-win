@@ -259,6 +259,10 @@ identity. Authentication, rate-limit, and server errors retain their existing ha
 Only eligible, started, unpaused, unexpired grants with remaining resets count; malformed
 records are skipped, and inventories over 200 grants or 50 available resets are ignored.
 Grant IDs and labels are never exported. Optional inventory errors do not discard quota windows.
+The tray resolves the installed `claude.exe` version once per refresh (PATH, then the native
+`%USERPROFILE%\.local\bin` location) and passes it to each isolated Claude engine process.
+`CLAUDE_CODE_VERSION` remains an explicit override. If detection fails, existing usage collection
+continues using the engine's legacy fallback, although resets may be unavailable on that version.
 Both providers use the same badge, expiry tooltip, and three-day warning color. The UI drops
 expired resets on its minute tick. CodexBar never redeems a reset or imports browser cookies.
 The response contract follows the [upstream Claude implementation](https://github.com/steipete/CodexBar/blob/main/Sources/CodexBarCore/Providers/Claude/ClaudeRateLimitResetCredits.swift).

@@ -147,8 +147,11 @@ public partial class App : System.Windows.Application
         {
             _window.ViewModel.BeginRefresh();
             IReadOnlyList<ProviderProfile> profiles = ProviderProfileDiscovery.Discover();
+            string? claudeVersion = profiles.Any(profile => profile.Provider == "claude")
+                ? await ClaudeVersionDiscovery.ResolveAsync(_shutdown.Token)
+                : null;
             ProviderProfileResult[] results = await Task.WhenAll(
-                profiles.Select(profile => FetchProfileAsync(profile, _shutdown.Token)));
+                profiles.Select(profile => FetchProfileAsync(profile, claudeVersion, _shutdown.Token)));
             _window.ViewModel.Apply(results);
             UpdateTooltip(results);
         }
@@ -168,6 +171,7 @@ public partial class App : System.Windows.Application
 
     private static async Task<ProviderProfileResult> FetchProfileAsync(
         ProviderProfile profile,
+        string? claudeVersion,
         CancellationToken cancellationToken)
     {
         try
@@ -176,6 +180,10 @@ public partial class App : System.Windows.Application
             {
                 [profile.EnvironmentVariable] = profile.ConfigDirectory,
             };
+            if (profile.Provider == "claude" && claudeVersion is not null)
+            {
+                environment["CLAUDE_CODE_VERSION"] = claudeVersion;
+            }
             var client = new EngineProcessClient(
                 provider: profile.Provider,
                 environmentOverrides: environment);

@@ -6,6 +6,7 @@ using CodexBar.Windows.Tray;
 
 var tests = new (string Name, Action Run)[]
 {
+    ("detects native Claude version output and paths", DetectsClaudeVersion),
     ("expires saved resets without losing count-only inventories", ExpiresSavedResets),
     ("keeps Claude reset inventory on its own account", ParsesClaudeResets),
     ("parses snapshot contract", ParsesSnapshotContract),
@@ -42,6 +43,43 @@ foreach ((string name, Action run) in tests)
 
 Console.WriteLine($"{tests.Length} engine client and appearance tests passed.");
 return 0;
+
+static void DetectsClaudeVersion()
+{
+    Assert(ClaudeVersionDiscovery.ParseVersion("2.1.283 (Claude Code)\r\n") == "2.1.283", "Expected CLI version.");
+    Assert(ClaudeVersionDiscovery.ParseVersion("not a version 2.1.283") is null, "Reject unrelated output.");
+    Assert(ClaudeVersionDiscovery.ParseVersion("2.1") is null, "Reject incomplete versions.");
+    string native = Path.Combine("user", ".local", "bin", "claude.exe");
+    string[] candidates = ClaudeVersionDiscovery.CandidatePaths("first" + Path.PathSeparator + "second", "user").ToArray();
+    Assert(candidates.SequenceEqual([Path.Combine("first", "claude.exe"), Path.Combine("second", "claude.exe"), native]),
+        "Search PATH and the native installation path.");
+    if (!OperatingSystem.IsWindows())
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "codexbar-version-test-" + Guid.NewGuid());
+        string? oldPath = Environment.GetEnvironmentVariable("PATH");
+        string? oldVersion = Environment.GetEnvironmentVariable("CLAUDE_CODE_VERSION");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string executable = Path.Combine(directory, "claude.exe");
+            File.WriteAllText(executable, "#!/bin/sh\nprintf '2.1.283 (Claude Code)\\n'\n");
+            File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            Environment.SetEnvironmentVariable("PATH", directory);
+            Environment.SetEnvironmentVariable("CLAUDE_CODE_VERSION", null);
+            Assert(ClaudeVersionDiscovery.ResolveAsync().GetAwaiter().GetResult() == "2.1.283",
+                "Run the discovered executable and read its version.");
+            Environment.SetEnvironmentVariable("CLAUDE_CODE_VERSION", "2.1.300");
+            Assert(ClaudeVersionDiscovery.ResolveAsync().GetAwaiter().GetResult() == "2.1.300",
+                "Honor an explicit version override.");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", oldPath);
+            Environment.SetEnvironmentVariable("CLAUDE_CODE_VERSION", oldVersion);
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+}
 
 static void ExpiresSavedResets()
 {
