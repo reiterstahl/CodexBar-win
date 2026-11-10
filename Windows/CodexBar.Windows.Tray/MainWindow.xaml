@@ -193,7 +193,7 @@
                             Grid.Column="2"
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
-                            <!-- Codex reset credits available in ChatGPT (read-only). -->
+                            <!-- Saved reset credits from this account's provider (read-only). -->
                             <Border
                                 Margin="8,0,0,0"
                                 Padding="8,3"

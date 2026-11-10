@@ -15,7 +15,7 @@ enum PortableClaudeProvider {
         now: Date = Date()) async throws -> PortableProviderSnapshot
     {
         var request = URLRequest(
-            url: Self.usageURL,
+            url: Self.usageURL.appending(queryItems: [URLQueryItem(name: "cedar_ember", value: "1")]),
             cachePolicy: .reloadIgnoringLocalCacheData,
             timeoutInterval: 30)
         request.httpMethod = "GET"
@@ -23,13 +23,26 @@ enum PortableClaudeProvider {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(Self.betaHeader, forHTTPHeaderField: "anthropic-beta")
+        let version = self.normalizedVersion(claudeCodeVersion) ?? Self.fallbackVersion
         request.setValue(
-            "claude-code/\(self.normalizedVersion(claudeCodeVersion) ?? Self.fallbackVersion)",
+            "claude-cli/\(version) (external, cli)",
             forHTTPHeaderField: "User-Agent")
 
-        let response: PortableHTTPResponse
+        var response: PortableHTTPResponse
         do {
             response = try await transport.response(for: request)
+            // Some accounts reject the optional inventory query. Retry ordinary usage
+            // once, retaining the same credentials; never retry authentication/rate limits.
+            if [400, 403].contains(response.statusCode),
+               !String(decoding: response.data, as: UTF8.self).localizedCaseInsensitiveContains("user:profile")
+            {
+                try Task.checkCancellation()
+                request.url = Self.usageURL
+                request.setValue("claude-code/\(version)", forHTTPHeaderField: "User-Agent")
+                response = try await transport.response(for: request)
+            }
+        } catch is CancellationError {
+            throw CancellationError()
         } catch let error as PortableProviderError {
             throw error
         } catch {
@@ -118,7 +131,8 @@ enum PortableClaudeProvider {
             source: "oauth",
             windows: windows,
             identity: identity,
-            updatedAt: now)
+            updatedAt: now,
+            resetCredits: PortableClaudeResetCredits.parse(data, now: now))
     }
 
     private static func window(

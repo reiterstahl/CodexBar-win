@@ -697,10 +697,10 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
 
     public bool ShowPill => View == ViewMode.Cards && PillText.Length > 0;
 
-    /// <summary>Codex rate-limit reset credits reported by ChatGPT, when any are available.</summary>
+    /// <summary>Saved resets reported by this account's provider.</summary>
     public ResetCredits? ResetCredits { get; private init; }
 
-    public int ResetCreditCount => Math.Max(0, ResetCredits?.AvailableCount ?? 0);
+    public int ResetCreditCount => ResetCredits?.AvailableAt(DateTimeOffset.Now) ?? 0;
 
     public bool HasResetCredits => ResetCreditCount > 0;
 
@@ -711,10 +711,15 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
     {
         get
         {
-            var lines = new List<string> { Loc.T("ResetCreditsTipHeader") };
+            var lines = new List<string> { Loc.T(Profile.Provider == "claude"
+                ? "ClaudeResetCreditsTipHeader" : "ResetCreditsTipHeader") };
             ResetCredit[] credits = ResetCredits?.Credits ?? [];
             foreach (ResetCredit credit in credits)
             {
+                if (credit.ExpiresAt is DateTimeOffset expiry && expiry <= DateTimeOffset.Now)
+                {
+                    continue;
+                }
                 lines.Add(credit.ExpiresAt is DateTimeOffset expiresAt
                     ? Loc.F(
                         "ResetCreditExpires",
@@ -841,6 +846,10 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PillBackground)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ResetChipForeground)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ResetChipBackground)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ResetCreditCount)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasResetCredits)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ResetCreditsLabel)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ResetCreditsTooltip)));
     }
 
     public void SetRecoveryPulse(bool visible)

@@ -6,6 +6,8 @@ using CodexBar.Windows.Tray;
 
 var tests = new (string Name, Action Run)[]
 {
+    ("expires saved resets without losing count-only inventories", ExpiresSavedResets),
+    ("keeps Claude reset inventory on its own account", ParsesClaudeResets),
     ("parses snapshot contract", ParsesSnapshotContract),
     ("rejects unsupported schema", RejectsUnsupportedSchema),
     ("rejects unknown provider", RejectsUnknownProvider),
@@ -40,6 +42,36 @@ foreach ((string name, Action run) in tests)
 
 Console.WriteLine($"{tests.Length} engine client and appearance tests passed.");
 return 0;
+
+static void ExpiresSavedResets()
+{
+    DateTimeOffset now = DateTimeOffset.Parse("2026-11-10T12:00:00Z");
+    var credits = new ResetCredits(3, [new(now, null), new(now.AddMinutes(1), null), new(null, null)]);
+    Assert(credits.AvailableAt(now.AddSeconds(-1)) == 3, "All resets should still be available.");
+    Assert(credits.AvailableAt(now) == 2, "Expiry boundary should remove a reset.");
+    Assert(credits.AvailableAt(now.AddMinutes(1)) == 1, "Unbounded reset should remain.");
+    Assert(new ResetCredits(2, []).AvailableAt(now) == 2, "Keep count-only Codex inventory.");
+    Assert(new ResetCredits(-1, null).AvailableAt(now) == 0, "Negative counts must be clamped.");
+}
+
+static void ParsesClaudeResets()
+{
+    EngineSnapshot snapshot = EngineSnapshotParser.Parse("""
+        {
+          "schemaVersion":1,"generatedAt":"2026-11-10T12:00:00Z","failures":[],
+          "providers":[
+            {"provider":"codex","displayName":"Codex","source":"oauth","windows":[],
+             "updatedAt":"2026-11-10T12:00:00Z"},
+            {"provider":"claude","displayName":"Claude Code","source":"oauth","windows":[],
+             "updatedAt":"2026-11-10T12:00:00Z",
+             "resetCredits":{"availableCount":2,"credits":[
+               {"expiresAt":"2026-11-16T12:00:00Z"},{"expiresAt":null}]}}
+          ]
+        }
+        """);
+    Assert(snapshot.Providers[0].ResetCredits is null, "Claude resets must not populate Codex.");
+    Assert(snapshot.Providers[1].ResetCredits?.AvailableCount == 2, "Expected two Claude resets.");
+}
 
 static void ParsesSnapshotContract()
 {

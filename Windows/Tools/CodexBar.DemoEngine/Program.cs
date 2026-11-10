@@ -57,13 +57,13 @@ object Window(string id, string label, double usedPercent, int windowMinutes, in
 
 object? ResetCredits(string providerName, bool isSecondary)
 {
-    // Codex only: two credits on the personal account, one expiring soon on the work account.
-    if (providerName != "codex")
+    // Include a Claude grant so screenshot/demo mode also exercises the shared badge.
+    if (providerName == "claude" && isSecondary)
     {
         return null;
     }
 
-    double[] expiryDays = isSecondary ? [2] : [12, 20];
+    double[] expiryDays = providerName == "claude" ? [6] : isSecondary ? [2] : [12, 20];
     return new
     {
         availableCount = expiryDays.Length,

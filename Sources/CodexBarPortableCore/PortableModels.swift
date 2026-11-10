@@ -50,7 +50,7 @@ public struct PortableProviderIdentity: Codable, Equatable, Sendable {
     }
 }
 
-/// One Codex rate-limit reset credit that the account can still redeem in ChatGPT.
+/// One saved rate-limit reset that the account can redeem with its provider.
 public struct PortableResetCredit: Codable, Equatable, Sendable {
     public let expiresAt: Date?
     public let title: String?
@@ -61,7 +61,7 @@ public struct PortableResetCredit: Codable, Equatable, Sendable {
     }
 }
 
-/// Available Codex reset credits, soonest expiry first. Read-only: CodexBar never redeems them.
+/// Available reset credits, soonest expiry first. Read-only: CodexBar never redeems them.
 public struct PortableResetCredits: Codable, Equatable, Sendable {
     public let availableCount: Int
     public let credits: [PortableResetCredit]

@@ -200,7 +200,7 @@ public sealed class Loc : INotifyPropertyChanged
             ["StartWithWindows"] = ("Iniciar con Windows", "Start with Windows"),
             ["StartWithWindowsHint"] = ("Abre CodexBar en el área de notificación al iniciar sesión", "Opens CodexBar in the notification area when you sign in"),
 
-            // Codex reset credits
+            // Saved reset credits
             ["ResetCreditOne"] = ("{0} reset", "{0} reset"),
             ["ResetCreditMany"] = ("{0} resets", "{0} resets"),
             ["ResetCreditsTipHeader"] = (
@@ -208,6 +208,9 @@ public sealed class Loc : INotifyPropertyChanged
                 "Rate-limit resets available in ChatGPT. CodexBar only shows them; redeem them from ChatGPT or Codex."),
             ["ResetCreditExpires"] = ("• Vence el {0}", "• Expires {0}"),
             ["ResetCreditNoExpiry"] = ("• Sin vencimiento", "• No expiry"),
+            ["ClaudeResetCreditsTipHeader"] = (
+                "Resets de límite disponibles en Claude. CodexBar solo los muestra; se usan desde Claude en la web o la app.",
+                "Rate-limit resets available in Claude. CodexBar only shows them; redeem them in Claude on the web or in the app."),
 
             // Window opacity
             ["WindowOpacity"] = ("Opacidad de la ventana", "Window opacity"),

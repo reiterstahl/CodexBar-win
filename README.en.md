@@ -46,9 +46,9 @@ window, when it resets, and which account still has quota. Works with several ac
   percentage.
 - **Live countdown** to the next reset, plus the full localized date.
 - Model-specific weekly quotas that repeat the general quota are omitted.
-- **Codex resets**: when ChatGPT grants you rate-limit resets, each account shows how many are available,
+- **Codex and Claude resets**: when your provider grants you rate-limit resets, each account shows how many are available,
   with their expiry in the tooltip (highlighted when one expires within 3 days). CodexBar only shows them;
-  redeem them from ChatGPT or Codex.
+  redeem Codex resets from ChatGPT or Codex, and Claude resets from Claude on the web or in the app.
 
 ### Multiple accounts
 - Automatically discovers isolated `%USERPROFILE%\.codex-*` and `%USERPROFILE%\.claude-*` profiles

@@ -17,10 +17,14 @@ public sealed record ProviderSnapshot(
     DateTimeOffset UpdatedAt,
     ResetCredits? ResetCredits = null);
 
-/// <summary>Codex rate-limit reset credits still available in ChatGPT; read-only.</summary>
+/// <summary>Saved rate-limit resets available from the account's provider; read-only.</summary>
 public sealed record ResetCredits(
     int AvailableCount,
-    ResetCredit[]? Credits);
+    ResetCredit[]? Credits)
+{
+    public int AvailableAt(DateTimeOffset now) => Math.Max(0, AvailableCount -
+        (Credits ?? []).Count(credit => credit.ExpiresAt is DateTimeOffset expiry && expiry <= now));
+}
 
 public sealed record ResetCredit(
     DateTimeOffset? ExpiresAt,

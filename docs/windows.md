@@ -251,6 +251,18 @@ The engine emits:
   same OAuth context; a failed lookup omits the field and never fails the snapshot
 - non-secret identity fields when available
 
+Claude populates the same optional `resetCredits` field from `cedar_ember` in
+`GET https://api.anthropic.com/api/oauth/usage?cedar_ember=1`, using the same account's OAuth
+token and `claude-cli/<version> (external, cli)` identity. Unsupported queries (400/403,
+excluding missing-profile-scope errors) retry once with the original usage URL and legacy
+identity. Authentication, rate-limit, and server errors retain their existing handling.
+Only eligible, started, unpaused, unexpired grants with remaining resets count; malformed
+records are skipped, and inventories over 200 grants or 50 available resets are ignored.
+Grant IDs and labels are never exported. Optional inventory errors do not discard quota windows.
+Both providers use the same badge, expiry tooltip, and three-day warning color. The UI drops
+expired resets on its minute tick. CodexBar never redeems a reset or imports browser cookies.
+The response contract follows the [upstream Claude implementation](https://github.com/steipete/CodexBar/blob/main/Sources/CodexBarCore/Providers/Claude/ClaudeRateLimitResetCredits.swift).
+
 The WPF tray application consumes this contract without loading or parsing credential files
 itself.
 
