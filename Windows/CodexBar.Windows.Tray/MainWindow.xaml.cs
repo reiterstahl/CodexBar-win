@@ -150,6 +150,15 @@ public partial class MainWindow : Window
         RefreshRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    private void CountdownButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: RateWindowViewModel window })
+        {
+            window.ToggleResetDate();
+        }
+        e.Handled = true;
+    }
+
     private void CopyLoginCommand_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement { DataContext: ProviderCardViewModel provider })

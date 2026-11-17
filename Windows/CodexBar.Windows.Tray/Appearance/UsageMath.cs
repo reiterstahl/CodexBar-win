@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace CodexBar.Windows.Tray;
 
 public enum PaceKind
@@ -20,6 +22,15 @@ public static class UsageMath
 {
     public const int SessionWindowMinutes = 300;
     public const int WeeklyWindowMinutes = 10_080;
+
+    /// <summary>Compact local reset date, e.g. "17NOV, 12:00PM".</summary>
+    public static string FormatExactReset(DateTimeOffset reset, CultureInfo culture, TimeZoneInfo? timeZone = null)
+    {
+        DateTimeOffset local = TimeZoneInfo.ConvertTime(reset, timeZone ?? TimeZoneInfo.Local);
+        string month = local.ToString("MMM", culture).Replace(".", string.Empty).ToUpper(culture);
+        return local.ToString("dd", CultureInfo.InvariantCulture) + month + ", " +
+            local.ToString("hh:mmtt", CultureInfo.InvariantCulture);
+    }
 
     public static int? DefaultWindowMinutes(string windowId)
     {

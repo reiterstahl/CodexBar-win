@@ -1000,6 +1000,7 @@ public sealed record WindowStyleContext(
 public sealed class RateWindowViewModel : INotifyPropertyChanged
 {
     private readonly string _label;
+    private bool _showExactResetDate;
     private WindowStyleContext? _style;
 
     private RateWindowViewModel(
@@ -1029,6 +1030,16 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
     public bool IsExhausted => RemainingPercent <= 0;
 
     public DateTimeOffset? ResetsAt { get; }
+
+    public bool CanToggleResetDate => ResetsAt is not null;
+
+    public void ToggleResetDate()
+    {
+        if (!CanToggleResetDate) return;
+        _showExactResetDate = !_showExactResetDate;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CountdownLabel)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowDate)));
+    }
 
     public bool IsSession => Id.Equals("session", StringComparison.OrdinalIgnoreCase);
 
@@ -1137,6 +1148,11 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
                 return Loc.T(IsExhausted ? "LimitReached" : "ResetUnavailable");
             }
 
+            if (_showExactResetDate)
+            {
+                return UsageMath.FormatExactReset(resetsAt, Loc.Instance.Culture);
+            }
+
             TimeSpan remaining = resetsAt - DateTimeOffset.Now;
             if (remaining <= TimeSpan.Zero)
             {
@@ -1178,7 +1194,7 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
     public bool IsResetSoon => ResetsAt is not null &&
         ResetsAt.Value - DateTimeOffset.Now <= TimeSpan.FromMinutes(30);
 
-    public bool ShowDate => View == ViewMode.Cards &&
+    public bool ShowDate => !_showExactResetDate && View == ViewMode.Cards &&
         _style?.Options.Density != Density.Compact &&
         ResetsAt is not null;
 

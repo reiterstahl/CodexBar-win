@@ -45,6 +45,7 @@ window, when it resets, and which account still has quota. Works with several ac
 - **Session** (5-hour) and **Weekly** window for each account, with a progress bar and remaining
   percentage.
 - **Live countdown** to the next reset, plus the full localized date.
+  Click the countdown to toggle the exact local date/time, such as `17NOV, 12:00PM`.
 - Model-specific weekly quotas that repeat the general quota are omitted.
 - **Codex and Claude resets**: when your provider grants you rate-limit resets, each account shows how many are available,
   with their expiry in the tooltip (highlighted when one expires within 3 days). CodexBar only shows them;

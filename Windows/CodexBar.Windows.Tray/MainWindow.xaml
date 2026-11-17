@@ -111,12 +111,26 @@
                             Text="{Binding PercentCaption}" />
                     </StackPanel>
 
-                    <TextBlock
-                        FontSize="12"
-                        FontWeight="{Binding CountdownWeight}"
-                        Foreground="{Binding CountdownBrush}"
-                        Text="{Binding CountdownLabel}"
-                        TextTrimming="CharacterEllipsis" />
+                    <Button
+                        Padding="0" Background="Transparent" BorderThickness="0"
+                        HorizontalContentAlignment="Left"
+                        IsEnabled="{Binding CanToggleResetDate}"
+                        Click="CountdownButton_Click"
+                        ToolTip="{local:Tr ToggleResetDateTip}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="Transparent">
+                                    <ContentPresenter HorizontalAlignment="Left" />
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <TextBlock
+                            FontSize="12"
+                            FontWeight="{Binding CountdownWeight}"
+                            Foreground="{Binding CountdownBrush}"
+                            Text="{Binding CountdownLabel}"
+                            TextTrimming="CharacterEllipsis" />
+                    </Button>
                     <TextBlock
                         Margin="0,2,0,0"
                         FontSize="11"

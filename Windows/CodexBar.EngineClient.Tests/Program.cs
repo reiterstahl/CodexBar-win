@@ -6,6 +6,7 @@ using CodexBar.Windows.Tray;
 
 var tests = new (string Name, Action Run)[]
 {
+    ("formats exact reset dates in local time with AM and PM", FormatsExactReset),
     ("keeps extra usage percentages and credit balances honest", MapsExtraUsage),
     ("detects native Claude version output and paths", DetectsClaudeVersion),
     ("expires saved resets without losing count-only inventories", ExpiresSavedResets),
@@ -44,6 +45,17 @@ foreach ((string name, Action run) in tests)
 
 Console.WriteLine($"{tests.Length} engine client and appearance tests passed.");
 return 0;
+
+static void FormatsExactReset()
+{
+    var zone = TimeZoneInfo.CreateCustomTimeZone("test-UTC-6", TimeSpan.FromHours(-6), "UTC-6", "UTC-6");
+    var es = CultureInfo.GetCultureInfo("es-CR");
+    var en = CultureInfo.GetCultureInfo("en-US");
+    Assert(UsageMath.FormatExactReset(DateTimeOffset.Parse("2026-11-17T18:00:00Z"), es, zone) == "17NOV, 12:00PM", "Noon must be PM.");
+    Assert(UsageMath.FormatExactReset(DateTimeOffset.Parse("2026-11-17T06:00:00Z"), en, zone) == "17NOV, 12:00AM", "Midnight must be AM.");
+    Assert(UsageMath.FormatExactReset(DateTimeOffset.Parse("2026-11-17T01:05:00Z"), es, zone) == "16NOV, 07:05PM", "Convert the day as well as the time.");
+    Assert(UsageMath.FormatExactReset(DateTimeOffset.Parse("2027-01-02T18:00:00Z"), es, zone) == "02ENE, 12:00PM", "Localize the month without dots.");
+}
 
 static void MapsExtraUsage()
 {

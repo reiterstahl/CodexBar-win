@@ -200,6 +200,10 @@ public sealed class Loc : INotifyPropertyChanged
             ["StartWithWindows"] = ("Iniciar con Windows", "Start with Windows"),
             ["StartWithWindowsHint"] = ("Abre CodexBar en el área de notificación al iniciar sesión", "Opens CodexBar in the notification area when you sign in"),
 
+            ["ToggleResetDateTip"] = (
+                "Clic para alternar entre tiempo restante y fecha/hora local exacta.",
+                "Click to switch between time remaining and the exact local reset date/time."),
+
             // Extra usage: provider-reported amounts only.
             ["ExtraPercent"] = ("{0}% restante", "{0}% remaining"),
             ["ExtraUnknownPercent"] = ("Sin total disponible", "Total unavailable"),
