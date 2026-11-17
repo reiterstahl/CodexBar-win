@@ -47,7 +47,7 @@ cuentas por proveedor.
   disponible.
 - **Cuenta regresiva en vivo** hasta la próxima renovación, más la fecha completa localizada
   (por ejemplo, *jueves 2 de octubre, 3:40 p. m.*).
-  Pulsá la cuenta regresiva para alternar con la fecha y hora local exactas, como `17NOV, 12:00PM`.
+  Pulsá la cuenta regresiva para alternar con el día, fecha y hora local exactas, como `VIE-20NOV, 12:00PM`.
 - Se omiten las cuotas semanales por modelo que repiten la información de la cuota general.
 - **Resets de Codex y Claude**: si el proveedor te otorgó resets de límite, cada cuenta muestra cuántos tenés disponibles,
   con su vencimiento en el tooltip (se resalta si alguno vence en 3 días o menos). CodexBar solo los muestra;
