@@ -180,7 +180,9 @@ SmartScreen can display a warning.
 ## Installer and updates
 
 Public releases are built by `.github/workflows/release-windows.yml` when a `windows-vX.Y.Z` tag is
-pushed. The workflow runs the portable Swift and engine-client tests, calls
+pushed, or by a manual run with `version` and explicit `publish=true`. A manual run defaults to
+build-only (`publish=false`). Published tags point at the exact workflow commit; updates are
+discovered from published stable releases, not arbitrary commits on main. The workflow runs the portable Swift and engine-client tests, calls
 `Windows/Package-Release.ps1`, and publishes the output of `vpk upload github`:
 
 ```text

@@ -9,6 +9,7 @@ public static class Program
     {
         // Handles Velopack install/update/uninstall hooks and exits early when invoked by them.
         VelopackApp.Build()
+            .SetAutoApplyOnStartup(true)
             .OnBeforeUninstallFastCallback(_ => StartupRegistration.Disable())
             .Run();
 

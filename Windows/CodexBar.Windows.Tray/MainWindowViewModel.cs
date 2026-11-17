@@ -326,6 +326,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                     RenameProfile);
             card.ApplyStyle(_palette, _options);
             cards.Add(card);
+            foreach (RateWindowViewModel window in card.Windows)
+            {
+                window.SetExactResetDate(Settings.ResetDateDisplay.IsExact(profileKey, window.Id));
+                window.ResetDateDisplayChanged += (quota, exact) =>
+                    _settingsStore.Update(settings => settings.ResetDateDisplay.SetExact(profileKey, quota.Id, exact));
+            }
             if (becameAvailable)
             {
                 recovered.Add(card);
@@ -1033,12 +1039,20 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
 
     public bool CanToggleResetDate => ResetsAt is not null;
 
+    public event Action<RateWindowViewModel, bool>? ResetDateDisplayChanged;
+
+    public void SetExactResetDate(bool exact)
+    {
+        _showExactResetDate = exact;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CountdownLabel)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowDate)));
+    }
+
     public void ToggleResetDate()
     {
         if (!CanToggleResetDate) return;
-        _showExactResetDate = !_showExactResetDate;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CountdownLabel)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowDate)));
+        SetExactResetDate(!_showExactResetDate);
+        ResetDateDisplayChanged?.Invoke(this, _showExactResetDate);
     }
 
     public bool IsSession => Id.Equals("session", StringComparison.OrdinalIgnoreCase);

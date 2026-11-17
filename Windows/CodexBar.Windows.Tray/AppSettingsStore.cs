@@ -134,6 +134,7 @@ public sealed class AppSettingsStore
 
 public sealed class AppSettings
 {
+    public ResetDatePreferences ResetDateDisplay { get; set; } = new();
     public Dictionary<string, string> AccountNames { get; set; } =
         new(StringComparer.OrdinalIgnoreCase);
 
@@ -182,6 +183,8 @@ public sealed class AppSettings
 
     public void Normalize()
     {
+        ResetDateDisplay ??= new();
+        ResetDateDisplay.Normalize();
         AccountNames = new Dictionary<string, string>(
             AccountNames ?? new Dictionary<string, string>(),
             StringComparer.OrdinalIgnoreCase);

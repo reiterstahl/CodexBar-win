@@ -48,6 +48,7 @@ cuentas por proveedor.
 - **Cuenta regresiva en vivo** hasta la próxima renovación, más la fecha completa localizada
   (por ejemplo, *jueves 2 de octubre, 3:40 p. m.*).
   Pulsá la cuenta regresiva para alternar con el día, fecha y hora local exactas, como `VIE-20NOV, 12:00PM`.
+  La elección se conserva por cuenta y cuota al refrescar, reiniciar o actualizar.
 - Se omiten las cuotas semanales por modelo que repiten la información de la cuota general.
 - **Resets de Codex y Claude**: si el proveedor te otorgó resets de límite, cada cuenta muestra cuántos tenés disponibles,
   con su vencimiento en el tooltip (se resalta si alguno vence en 3 días o menos). CodexBar solo los muestra;
@@ -239,8 +240,9 @@ git tag windows-v1.0.0
 git push origin windows-v1.0.0
 ```
 
-Un tag con sufijo (`windows-v1.1.0-beta.1`) se publica como pre-release. Para probar el empaquetado
-sin publicar, ejecutá el workflow a mano (*Run workflow*) o, en Windows con `vpk` instalado:
+Un tag con sufijo (`windows-v1.1.0-beta.1`) se publica como pre-release. También podés ejecutar
+el workflow a mano con `version` y `publish=true` para generar y publicar con una sola ejecución;
+con `publish=false` (valor predeterminado) solo genera el artefacto. En Windows con `vpk` instalado:
 
 ```powershell
 dotnet tool install -g vpk --version 1.2.161

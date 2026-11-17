@@ -6,6 +6,7 @@ using CodexBar.Windows.Tray;
 
 var tests = new (string Name, Action Run)[]
 {
+    ("persists exact reset dates independently across accounts and refreshes", PersistsResetDates),
     ("formats exact reset dates in local time with AM and PM", FormatsExactReset),
     ("keeps extra usage percentages and credit balances honest", MapsExtraUsage),
     ("detects native Claude version output and paths", DetectsClaudeVersion),
@@ -45,6 +46,22 @@ foreach ((string name, Action run) in tests)
 
 Console.WriteLine($"{tests.Length} engine client and appearance tests passed.");
 return 0;
+
+static void PersistsResetDates()
+{
+    var choices = new ResetDatePreferences();
+    choices.SetExact("claude-main", "session", true);
+    choices.SetExact("claude-secondary", "weekly", true);
+    string json = System.Text.Json.JsonSerializer.Serialize(choices);
+    ResetDatePreferences restored = System.Text.Json.JsonSerializer.Deserialize<ResetDatePreferences>(json)!;
+    restored.Normalize();
+    Assert(restored.IsExact("CLAUDE-MAIN", "SESSION"), "Restore the selected account/window after restart.");
+    Assert(!restored.IsExact("claude-main", "weekly"), "Keep windows independent.");
+    Assert(!restored.IsExact("claude-secondary", "session"), "Keep accounts independent.");
+    restored.SetExact("claude-main", "session", false);
+    Assert(!restored.IsExact("claude-main", "session"), "Toggling back must remove the stored selection.");
+    Assert(restored.IsExact("claude-secondary", "weekly"), "Preserve the other account's selection.");
+}
 
 static void FormatsExactReset()
 {

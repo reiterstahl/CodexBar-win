@@ -46,6 +46,7 @@ window, when it resets, and which account still has quota. Works with several ac
   percentage.
 - **Live countdown** to the next reset, plus the full localized date.
   Click the countdown to toggle the exact local weekday/date/time, such as `FRI-20NOV, 12:00PM`.
+  Each account/window choice survives refreshes, restarts, and updates.
 - Model-specific weekly quotas that repeat the general quota are omitted.
 - **Codex and Claude resets**: when your provider grants you rate-limit resets, each account shows how many are available,
   with their expiry in the tooltip (highlighted when one expires within 3 days). CodexBar only shows them;
@@ -238,7 +239,8 @@ git push origin windows-v1.0.0
 ```
 
 A tag with a suffix (`windows-v1.1.0-beta.1`) is published as a pre-release. To test packaging without
-publishing, run the workflow manually (*Run workflow*) or, on Windows with `vpk` installed:
+publishing, run the workflow manually (*Run workflow*) with `publish=false` (the default).
+Set `publish=true` to build and publish in a single run. Alternatively, on Windows with `vpk` installed:
 
 ```powershell
 dotnet tool install -g vpk --version 1.2.161

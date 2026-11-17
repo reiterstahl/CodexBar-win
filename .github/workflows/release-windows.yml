@@ -2,7 +2,7 @@ name: Release Windows
 
 # Push a tag such as `windows-v1.0.0` to build Setup.exe with Velopack and publish it as a
 # GitHub Release. Installed copies of CodexBar check these releases for updates.
-# Manual runs build the packages as a workflow artifact without publishing.
+# Manual runs can build only or explicitly publish without triggering a second tag build.
 on:
   push:
     tags:
@@ -10,8 +10,12 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Semantic version to build (for example 1.0.0). Manual runs do not publish."
+        description: "Semantic version to build (for example 1.4.0)."
         required: true
+      publish:
+        description: "Publish the installer and auto-update packages to GitHub Releases."
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -103,7 +107,7 @@ jobs:
           "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Download previous release for delta updates
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || inputs.publish == true
         shell: pwsh
         env:
           VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -128,12 +132,13 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub Release
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || inputs.publish == true
         shell: pwsh
         env:
           VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
-          TAG: ${{ github.ref_name }}
+          TAG: windows-v${{ steps.version.outputs.value }}
+          TARGET_SHA: ${{ github.sha }}
           VERSION: ${{ steps.version.outputs.value }}
           PRERELEASE: ${{ steps.version.outputs.prerelease }}
         run: |
@@ -142,6 +147,7 @@ jobs:
             "--repoUrl", $env:REPO_URL,
             "--outputDir", "artifacts/windows/releases",
             "--tag", $env:TAG,
+            "--targetCommitish", $env:TARGET_SHA,
             "--releaseName", "CodexBar para Windows $env:VERSION",
             "--publish"
           )

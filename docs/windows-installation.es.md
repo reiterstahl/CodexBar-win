@@ -225,13 +225,31 @@ imprime tokens ni contraseñas.
 
 ## 7. Actualizar CodexBar
 
+### Pasar del script al instalador (una sola vez)
+
+1. Descarga `CodexBarWindows-win-Setup.exe` de la [última versión](https://github.com/reiterstahl/CodexBar-win/releases/latest).
+2. Si venías usando `Update-CodexBar.cmd` / `Install-CodexBar.ps1`, usa **Uninstall CodexBar** del
+   menú Inicio antes de instalar Setup.exe. No elijas eliminar preferencias. Se conservarán
+   `%LOCALAPPDATA%\CodexBar\settings.json` y las credenciales de ambos proveedores.
+3. Ejecuta Setup.exe y abre CodexBar desde el acceso directo que crea. Si lo deseas, vuelve a
+   activar **Iniciar con Windows** en Personalizar.
+
+Desde ese momento, usa esa copia instalada y sus actualizaciones automáticas. El script
+`Update-CodexBar.cmd` sigue siendo una herramienta de desarrollo e instala otra copia portable;
+no es necesario usarlo para mantener la instalación de Setup.exe.
+
+Las elecciones de fecha exacta/cuenta regresiva se guardan por cuenta y cuota: no se pierden
+con el refresco periódico, los cambios de vista, los reinicios ni las actualizaciones.
+
 ### Actualización automática
 
 Si instalaste con `Setup.exe`, CodexBar revisa GitHub Releases al iniciar y
 cada 6 horas. Cuando hay una versión nueva, la descarga en segundo plano y
 muestra **Reiniciar** en la ventana y **Reiniciar para actualizar** en el menú
 de la bandeja. Si no reinicias, la versión nueva se instala la próxima vez que
-abras la aplicación. Se conservan cuentas, nombres y preferencias.
+abras la aplicación (también después de reiniciar Windows, si activaste Iniciar con Windows).
+Se conservan cuentas, nombres y preferencias. Las versiones llegan desde **GitHub Releases**;
+un cambio en `main` por sí solo no publica una actualización.
 
 ### Desde el código fuente (desarrollo)
 

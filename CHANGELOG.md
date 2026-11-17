@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0
+
+- La elección entre cuenta regresiva y fecha exacta se conserva por cuenta y cuota, incluso
+  después de actualizar los datos o reiniciar CodexBar.
+- Fechas exactas con día abreviado, fecha y hora local, por ejemplo `VIE-20NOV, 12:00PM`.
+- Resets disponibles de Claude, con detección de la versión instalada de Claude Code.
+- Uso extra en violeta: gasto/límite mensual en USD de Claude y saldo reportado en créditos de Codex.
+- Actualización automática desde GitHub Releases al instalar con Setup.exe; las descargas
+  pendientes se aplican al reiniciar la app, con opción para reiniciar inmediatamente.
+- Refresco del icono de la barra de tareas al crearse el botón de Explorer.
+
 ## 1.3.0
 
 - **Resets de Codex**: cada cuenta de Codex muestra los resets de límite disponibles en ChatGPT, con su
