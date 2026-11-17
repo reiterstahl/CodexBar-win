@@ -700,6 +700,42 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
     /// <summary>Saved resets reported by this account's provider.</summary>
     public ResetCredits? ResetCredits { get; private init; }
 
+    public ExtraUsage? ExtraUsage { get; private init; }
+    public bool HasExtraUsage => ExtraUsage is { } extra &&
+        (extra.IsEnabled || extra.Unlimited || extra.Balance > 0 || extra.Used > 0 || extra.Limit > 0);
+    public bool IsExtraUsageActive => Windows.Any(window => window.IsExhausted) && ExtraUsage?.IsEnabled == true;
+    public double? ExtraRemaining => ExtraUsage?.RemainingPercent;
+    public bool HasExtraPercentage => ExtraRemaining is not null;
+    public double ExtraMeterValue => ExtraRemaining ?? 0;
+    public string ExtraPercentLabel => ExtraRemaining is double percent
+        ? Loc.F("ExtraPercent", percent.ToString("0", Loc.Instance.Culture)) : Loc.T("ExtraUnknownPercent");
+    public string ExtraTitle => Loc.T(IsExtraUsageActive ? "ExtraActive" : "ExtraReady");
+    public string ExtraAmounts
+    {
+        get
+        {
+            if (ExtraUsage is not { } extra) return string.Empty;
+            if (extra.Unlimited) return Loc.T("ExtraUnlimited");
+            string Amount(double value) => value.ToString("0.00", Loc.Instance.Culture);
+            if (extra.Currency == "USD")
+            {
+                return extra.Limit is double limit && extra.Used is double used
+                    ? Loc.F("ExtraUsdBudget", Amount(used), Amount(limit))
+                    : extra.Used is double spent ? Loc.F("ExtraUsdSpent", Amount(spent))
+                    : extra.Limit is double knownLimit ? Loc.F("ExtraUsdLimitOnly", Amount(knownLimit))
+                    : Loc.T("ExtraBalanceUnavailable");
+            }
+            if (extra.Balance is not double balance) return Loc.T("ExtraBalanceUnavailable");
+            string credits = Loc.F("ExtraCreditBalance", Amount(balance));
+            return credits;
+        }
+    }
+    public string ExtraTooltip => Loc.T(ExtraUsage?.Currency == "USD" ? "ExtraClaudeTip" : "ExtraCodexTip");
+    public Brush? ExtraBrush => _palette is null ? null : _palette.Brush(
+        RgbColor.Parse("#A78BFA").EnsureContrast(CardBackground, 4.5));
+    public Brush? ExtraTrackBrush => _palette?.Brush(_palette.Track);
+    public double ExtraOpacity => IsExtraUsageActive ? 1.0 : 0.75;
+
     public int ResetCreditCount => ResetCredits?.AvailableAt(DateTimeOffset.Now) ?? 0;
 
     public bool HasResetCredits => ResetCreditCount > 0;
@@ -897,6 +933,7 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
             rename)
         {
             ResetCredits = snapshot.ResetCredits,
+            ExtraUsage = snapshot.ExtraUsage,
         };
     }
 

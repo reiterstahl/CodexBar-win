@@ -270,6 +270,27 @@ The response contract follows the [upstream Claude implementation](https://githu
 The WPF tray application consumes this contract without loading or parsing credential files
 itself.
 
+### Extra usage and purchased credits
+
+Optional `extraUsage` carries `currency`, nullable `used`/`limit`/`balance`, `isEnabled`, and
+`unlimited`. Claude's `extra_usage.used_credits` and `monthly_limit` are USD cents; the engine
+converts them to dollars and labels the total as a **monthly spending cap**, not a prepaid wallet.
+A missing cap or spend stays unknown, never zero or unlimited. Disabled extra usage is omitted.
+Codex's `credits.balance` can be numeric or a numeric string and stays in **credits**. The engine
+does not convert it to USD, infer purchased totals, or calculate a percentage from a balance alone.
+Explicit unlimited/disabled/exhausted observations are retained. Malformed optional billing data
+never discards ordinary quotas, and spend-only accounts need no fabricated Session/Weekly bars.
+
+The shared purple section appears in Cards, Summary, and Mini when extra usage is reported.
+It is highlighted when an included Session/Weekly quota is exhausted and extra usage is enabled.
+Disabled zero-balance accounts do not gain an empty extra-usage section. This is a quota-state hint, not proof that the current request is billed
+to credits. A percentage bar appears only when both spend and a positive cap are known; Codex
+balance-only accounts show just the reported balance. The section enables no purchases or billing.
+No extra network call, browser access, or credentials are added to the tray.
+
+Contract references: [Claude usage-credit spend](https://code.claude.com/docs/en/costs#check-your-usage-credits-spend)
+and [Codex credits snapshot](https://github.com/openai/codex/blob/main/codex-rs/app-server-protocol/src/protocol/v2/account.rs).
+
 ## Remaining Windows work
 
 1. Validate the native Windows job and tray behavior on a real Windows desktop.

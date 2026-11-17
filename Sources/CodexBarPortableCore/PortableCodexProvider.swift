@@ -68,7 +68,8 @@ enum PortableCodexProvider {
             self.window(payload.rateLimit?.primaryWindow, id: "session", label: "Session"),
             self.window(payload.rateLimit?.secondaryWindow, id: "weekly", label: "Weekly"),
         ].compactMap(\.self)
-        guard !windows.isEmpty else {
+        let extraUsage = PortableExtraUsageParser.codex(data)
+        guard !windows.isEmpty || extraUsage != nil else {
             throw PortableProviderError.invalidResponse(provider: .codex)
         }
 
@@ -90,7 +91,8 @@ enum PortableCodexProvider {
             source: "oauth",
             windows: windows,
             identity: identity,
-            updatedAt: now)
+            updatedAt: now,
+            extraUsage: extraUsage)
     }
 
     /// Best-effort lookup of rate-limit reset credits. Any failure returns nil so the usage

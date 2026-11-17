@@ -119,7 +119,8 @@ enum PortableClaudeProvider {
                 resetsAt: self.parseISO8601(limit.resetsAt)))
         }
 
-        guard !windows.isEmpty else {
+        let extraUsage = PortableExtraUsageParser.claude(data)
+        guard !windows.isEmpty || extraUsage != nil else {
             throw PortableProviderError.invalidResponse(provider: .claude)
         }
 
@@ -132,7 +133,8 @@ enum PortableClaudeProvider {
             windows: windows,
             identity: identity,
             updatedAt: now,
-            resetCredits: PortableClaudeResetCredits.parse(data, now: now))
+            resetCredits: PortableClaudeResetCredits.parse(data, now: now),
+            extraUsage: extraUsage)
     }
 
     private static func window(

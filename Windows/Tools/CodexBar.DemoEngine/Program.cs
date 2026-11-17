@@ -38,6 +38,15 @@ var snapshot = new
             identity = new { accountEmail = account.Email, plan = account.Plan },
             updatedAt = now,
             resetCredits = ResetCredits(provider, secondary),
+            extraUsage = new
+            {
+                currency = provider == "claude" ? "USD" : "credits",
+                used = provider == "claude" ? (double?)5.25 : null,
+                limit = provider == "claude" ? (double?)20 : null,
+                balance = provider == "codex" ? (double?)150.25 : null,
+                isEnabled = true,
+                unlimited = false,
+            },
         },
     },
     failures = Array.Empty<object>(),

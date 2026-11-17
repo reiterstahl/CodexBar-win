@@ -51,6 +51,9 @@ cuentas por proveedor.
 - **Resets de Codex y Claude**: si el proveedor te otorgó resets de límite, cada cuenta muestra cuántos tenés disponibles,
   con su vencimiento en el tooltip (se resalta si alguno vence en 3 días o menos). CodexBar solo los muestra;
   los de Codex se usan desde ChatGPT o Codex y los de Claude desde su web o app.
+- **Uso extra**: sección violeta por cuenta, resaltada al agotarse Sesión o Semanal. Claude muestra
+  el porcentaje restante y los USD usados frente al límite mensual reportado (no es el saldo prepagado).
+  Codex muestra el saldo real en créditos, sin estimar dólares ni porcentajes cuando falta el total.
 
 ### Varias cuentas
 - Detecta automáticamente perfiles aislados `%USERPROFILE%\.codex-*` y `%USERPROFILE%\.claude-*`

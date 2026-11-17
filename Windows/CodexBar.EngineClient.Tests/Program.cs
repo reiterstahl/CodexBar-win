@@ -6,6 +6,7 @@ using CodexBar.Windows.Tray;
 
 var tests = new (string Name, Action Run)[]
 {
+    ("keeps extra usage percentages and credit balances honest", MapsExtraUsage),
     ("detects native Claude version output and paths", DetectsClaudeVersion),
     ("expires saved resets without losing count-only inventories", ExpiresSavedResets),
     ("keeps Claude reset inventory on its own account", ParsesClaudeResets),
@@ -43,6 +44,25 @@ foreach ((string name, Action run) in tests)
 
 Console.WriteLine($"{tests.Length} engine client and appearance tests passed.");
 return 0;
+
+static void MapsExtraUsage()
+{
+    var claude = new ExtraUsage("USD", 5.25, 20, null, true, false);
+    Assert(claude.RemainingPercent == 73.75, "Expected remaining monthly extra usage.");
+    Assert(new ExtraUsage("USD", 25, 20, null, true, false).RemainingPercent == 0, "Clamp overspending.");
+    Assert(new ExtraUsage("USD", null, 20, null, true, false).RemainingPercent is null, "Unknown spend is not zero.");
+    Assert(new ExtraUsage("USD", 5, null, null, true, false).RemainingPercent is null, "No percentage without cap.");
+    Assert(new ExtraUsage("credits", null, null, 12, true, false).RemainingPercent is null, "Do not invent Codex percentages.");
+    Assert(!new ExtraUsage("credits", null, null, 0, false, false).IsEnabled, "Retain disabled/exhausted credit state.");
+    EngineSnapshot snapshot = EngineSnapshotParser.Parse("""
+        {"schemaVersion":1,"generatedAt":"2026-11-17T12:00:00Z","failures":[],"providers":[
+          {"provider":"claude","displayName":"Claude","source":"oauth","windows":[],
+           "updatedAt":"2026-11-17T12:00:00Z",
+           "extraUsage":{"currency":"USD","used":5.25,"limit":20,"balance":null,"isEnabled":true,"unlimited":false}}
+        ]}
+        """);
+    Assert(snapshot.Providers[0].ExtraUsage == claude, "Preserve normalized amounts in the engine contract.");
+}
 
 static void DetectsClaudeVersion()
 {

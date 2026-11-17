@@ -200,6 +200,24 @@ public sealed class Loc : INotifyPropertyChanged
             ["StartWithWindows"] = ("Iniciar con Windows", "Start with Windows"),
             ["StartWithWindowsHint"] = ("Abre CodexBar en el área de notificación al iniciar sesión", "Opens CodexBar in the notification area when you sign in"),
 
+            // Extra usage: provider-reported amounts only.
+            ["ExtraPercent"] = ("{0}% restante", "{0}% remaining"),
+            ["ExtraUnknownPercent"] = ("Sin total disponible", "Total unavailable"),
+            ["ExtraActive"] = ("Uso extra · cuota incluida agotada", "Extra usage · included quota exhausted"),
+            ["ExtraReady"] = ("Uso extra", "Extra usage"),
+            ["ExtraUnlimited"] = ("Créditos sin límite reportado", "Credits reported as unlimited"),
+            ["ExtraUsdBudget"] = ("USD {0} usados de {1} · límite mensual", "USD {0} spent of {1} · monthly cap"),
+            ["ExtraUsdSpent"] = ("USD {0} usados · sin límite reportado", "USD {0} spent · no cap reported"),
+            ["ExtraUsdLimitOnly"] = ("Límite mensual USD {0} · gasto no informado", "USD {0} monthly cap · spend unavailable"),
+            ["ExtraCreditBalance"] = ("{0} créditos disponibles", "{0} credits available"),
+            ["ExtraBalanceUnavailable"] = ("Uso extra habilitado · saldo no informado", "Extra usage enabled · balance unavailable"),
+            ["ExtraClaudeTip"] = (
+                "Gasto extra y límite mensual informados por Claude. El límite no equivale al saldo prepagado. Se resalta al agotarse la cuota incluida; no se habilitan pagos desde CodexBar.",
+                "Extra spend and monthly cap reported by Claude. The cap is not a prepaid balance. Highlighted when included quota is exhausted; CodexBar does not enable billing."),
+            ["ExtraCodexTip"] = (
+                "Saldo de créditos informado por Codex. No se estima el total comprado, el porcentaje restante ni una equivalencia en USD.",
+                "Credit balance reported by Codex. Purchased totals, remaining percentage, and USD equivalents are not estimated."),
+
             // Saved reset credits
             ["ResetCreditOne"] = ("{0} reset", "{0} reset"),
             ["ResetCreditMany"] = ("{0} resets", "{0} resets"),

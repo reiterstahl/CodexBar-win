@@ -72,6 +72,16 @@ public struct PortableResetCredits: Codable, Equatable, Sendable {
     }
 }
 
+/// Provider-reported extra usage. A spend cap is not a prepaid wallet balance.
+public struct PortableExtraUsage: Codable, Equatable, Sendable {
+    public let currency: String
+    public let used: Double?
+    public let limit: Double?
+    public let balance: Double?
+    public let isEnabled: Bool
+    public let unlimited: Bool
+}
+
 public struct PortableProviderSnapshot: Codable, Equatable, Sendable {
     public let provider: PortableProvider
     public let displayName: String
@@ -81,6 +91,7 @@ public struct PortableProviderSnapshot: Codable, Equatable, Sendable {
     public let updatedAt: Date
     /// Optional extra; absent when the provider has no such concept or the lookup failed.
     public let resetCredits: PortableResetCredits?
+    public let extraUsage: PortableExtraUsage?
 
     public init(
         provider: PortableProvider,
@@ -88,7 +99,8 @@ public struct PortableProviderSnapshot: Codable, Equatable, Sendable {
         windows: [PortableRateWindow],
         identity: PortableProviderIdentity?,
         updatedAt: Date,
-        resetCredits: PortableResetCredits? = nil)
+        resetCredits: PortableResetCredits? = nil,
+        extraUsage: PortableExtraUsage? = nil)
     {
         self.provider = provider
         self.displayName = provider.displayName
@@ -97,6 +109,7 @@ public struct PortableProviderSnapshot: Codable, Equatable, Sendable {
         self.identity = identity
         self.updatedAt = updatedAt
         self.resetCredits = resetCredits
+        self.extraUsage = extraUsage
     }
 
     func withResetCredits(_ resetCredits: PortableResetCredits?) -> PortableProviderSnapshot {
@@ -106,7 +119,8 @@ public struct PortableProviderSnapshot: Codable, Equatable, Sendable {
             windows: self.windows,
             identity: self.identity,
             updatedAt: self.updatedAt,
-            resetCredits: resetCredits)
+            resetCredits: resetCredits,
+            extraUsage: self.extraUsage)
     }
 }
 

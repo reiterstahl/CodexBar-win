@@ -49,6 +49,9 @@ window, when it resets, and which account still has quota. Works with several ac
 - **Codex and Claude resets**: when your provider grants you rate-limit resets, each account shows how many are available,
   with their expiry in the tooltip (highlighted when one expires within 3 days). CodexBar only shows them;
   redeem Codex resets from ChatGPT or Codex, and Claude resets from Claude on the web or in the app.
+- **Extra usage**: a purple section per account, highlighted when Session or Weekly is exhausted.
+  Claude shows remaining percentage and USD spend against its reported monthly cap (not a prepaid wallet).
+  Codex shows its reported credit balance, without estimating USD or percentages when no total is available.
 
 ### Multiple accounts
 - Automatically discovers isolated `%USERPROFILE%\.codex-*` and `%USERPROFILE%\.claude-*` profiles

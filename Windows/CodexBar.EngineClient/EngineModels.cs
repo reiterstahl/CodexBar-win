@@ -15,7 +15,23 @@ public sealed record ProviderSnapshot(
     RateWindow[] Windows,
     ProviderIdentity? Identity,
     DateTimeOffset UpdatedAt,
-    ResetCredits? ResetCredits = null);
+    ResetCredits? ResetCredits = null,
+    ExtraUsage? ExtraUsage = null);
+
+public sealed record ExtraUsage(
+    string Currency,
+    double? Used,
+    double? Limit,
+    double? Balance,
+    bool IsEnabled,
+    bool Unlimited)
+{
+    [JsonIgnore]
+    public double? RemainingPercent => Used is >= 0 && Limit is > 0
+        ? Math.Clamp(100 * (1 - Used.Value / Limit.Value), 0, 100)
+        : null;
+
+}
 
 /// <summary>Saved rate-limit resets available from the account's provider; read-only.</summary>
 public sealed record ResetCredits(
