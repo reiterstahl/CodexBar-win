@@ -454,9 +454,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     private void PublishCards()
     {
-        IEnumerable<ProviderCardViewModel> ordered = Settings.AvailableFirst
-            ? _cards.OrderBy(card => card.HasError ? 2 : card.IsExhausted ? 1 : 0)
-            : _cards;
+        IEnumerable<ProviderCardViewModel> ordered = AccountOrdering.Order(
+            _cards,
+            AccountOrdering.ResolveOrder(Settings.AccountOrder, Settings.AvailableFirst),
+            card => AccountQuotaRank.FromRemaining(
+                card.SessionWindow?.RemainingPercent,
+                card.WeeklyWindow?.RemainingPercent,
+                card.HasError));
         Providers.Clear();
         foreach (ProviderCardViewModel card in ordered)
         {

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.0
+
+- Nuevo selector **Orden de las cuentas** en Personalizar: Original, Con cuota primero
+  y Más cuota disponible. La elección se guarda y se aplica al instante en todas las vistas.
+- **Más cuota disponible** compara el menor saldo real entre Sesión y Semanal, de mayor
+  a menor; la otra cuota desempata. Las cuentas agotadas, sin datos o con errores quedan abajo.
+- Se conserva la preferencia de orden anterior al actualizar. El cálculo no confunde
+  los porcentajes de espera de las cuentas agotadas con cuota disponible.
+
 ## 1.5.0
 
 - Las cuotas agotadas muestran una barra de espera que se vacía hasta la renovación:

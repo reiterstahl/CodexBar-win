@@ -617,6 +617,18 @@
                             Value="{Binding WindowOpacityPercent}" />
                     </DockPanel>
 
+                    <StackPanel Margin="0,20,0,0">
+                        <TextBlock Style="{StaticResource SectionLabelStyle}" Text="{local:Tr SectionAccountOrder}" />
+                        <Border Style="{StaticResource SegmentHostStyle}">
+                            <ItemsControl
+                                AutomationProperties.Name="{local:Tr SectionAccountOrder}"
+                                ItemTemplate="{StaticResource SegmentTemplate}"
+                                ItemsPanel="{StaticResource SegmentPanel}"
+                                ItemsSource="{Binding Customization.AccountOrders}" />
+                        </Border>
+                        <TextBlock Margin="0,6,0,0" Style="{StaticResource SettingHintStyle}" Text="{local:Tr AccountOrderHint}" />
+                    </StackPanel>
+
                     <TextBlock
                         Margin="0,20,0,6"
                         Style="{StaticResource SectionLabelStyle}"
@@ -631,18 +643,6 @@
                         <StackPanel Margin="0,0,12,0">
                             <TextBlock Style="{StaticResource SettingTitleStyle}" Text="{local:Tr PaceMarker}" />
                             <TextBlock Style="{StaticResource SettingHintStyle}" Text="{local:Tr PaceMarkerHint}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <DockPanel Margin="0,4">
-                        <CheckBox
-                            VerticalAlignment="Center"
-                            AutomationProperties.Name="{local:Tr AvailableFirst}"
-                            DockPanel.Dock="Right"
-                            IsChecked="{Binding Customization.AvailableFirst}"
-                            Style="{StaticResource SwitchStyle}" />
-                        <StackPanel Margin="0,0,12,0">
-                            <TextBlock Style="{StaticResource SettingTitleStyle}" Text="{local:Tr AvailableFirst}" />
-                            <TextBlock Style="{StaticResource SettingHintStyle}" Text="{local:Tr AvailableFirstHint}" />
                         </StackPanel>
                     </DockPanel>
                     <DockPanel Margin="0,4">

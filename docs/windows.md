@@ -51,6 +51,17 @@ the existing minute timer refreshes it without another provider call. Unknown re
 metadata keeps the usual meter. The card remains exhausted until the provider reports
 available quota, even if the countdown reaches zero. Extra-usage balances are unchanged.
 
+Settings includes an **Account order** selector: Original, Available first (the previous
+default), and Most quota left. The last mode ranks accounts by descending
+`min(session remaining, weekly remaining)`, breaking ties by descending `max(...)`.
+It compares normalized headroom, not absolute tokens or an average across providers.
+Exhausted accounts follow usable ones; unknown accounts and errors come last. A single
+reported window is used without inventing a balance for the missing window, and exact
+ties preserve discovery order. The preference persists, takes effect immediately in all
+views, and is reapplied on provider refresh. Older `availableFirst` preferences migrate
+without changing their behavior. Reset-wait meter percentages and extra-usage credit
+balances never enter the ranking.
+
 ## Security boundary
 
 The engine reads provider-owned credential files:

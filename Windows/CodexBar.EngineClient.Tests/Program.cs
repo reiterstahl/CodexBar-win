@@ -23,6 +23,9 @@ var tests = new (string Name, Action Run)[]
     ("projects pace until reset", ProjectsPaceUntilReset),
     ("counts down exhausted quotas without changing usage", CountsDownExhaustedQuotas),
     ("shades reset countdowns continuously with readable contrast", ShadesResetCountdowns),
+    ("ranks accounts by both session and weekly quota", OrdersByCombinedQuota),
+    ("keeps quota ordering stable and handles missing data", KeepsQuotaOrderingStable),
+    ("migrates account order preferences without changing old choices", MigratesAccountOrdering),
     ("formats countdown durations", FormatsCountdownDurations),
     ("parses stored appearance options", ParsesStoredAppearanceOptions),
     ("translates every string into both languages", TranslatesEveryString),
@@ -411,6 +414,83 @@ static void ShadesResetCountdowns()
                 "Keep countdown labels readable in every theme.");
             previous = color;
         }
+    }
+}
+
+static void OrdersByCombinedQuota()
+{
+    (string Name, double? Session, double? Weekly, bool Error)[] accounts =
+    [
+        ("Codex RQR", 100, 1, false),
+        ("Codex U", 100, 92, false),
+        ("Claude Patricio", 100, 56, false),
+        ("Claude RQR", 0, 0, false),
+        ("Claude U", 100, 0, false),
+        ("Unknown", null, null, false),
+        ("Signed out", 100, 100, true),
+    ];
+    var mostQuota = AccountOrdering.Order(accounts, AccountSortOrder.MostQuota,
+        account => AccountQuotaRank.FromRemaining(account.Session, account.Weekly, account.Error));
+    Assert(mostQuota.Select(account => account.Name).SequenceEqual(
+        ["Codex U", "Claude Patricio", "Codex RQR", "Claude U", "Claude RQR", "Unknown", "Signed out"]),
+        "Weekly availability must matter even when every usable session is full; exhausted accounts stay last.");
+
+    AccountQuotaRank[] ranks =
+    [
+        AccountQuotaRank.FromRemaining(100, 1),
+        AccountQuotaRank.FromRemaining(40, 40),
+        AccountQuotaRank.FromRemaining(90, 40),
+        AccountQuotaRank.FromRemaining(40, 80),
+        AccountQuotaRank.FromRemaining(10, 100),
+    ];
+    Assert(AccountOrdering.Order(ranks, AccountSortOrder.MostQuota, rank => rank)
+        .SequenceEqual(new[] { ranks[2], ranks[3], ranks[1], ranks[4], ranks[0] }),
+        "Prioritize the lower remaining quota, then use the higher quota to break ties.");
+
+    Assert(AccountOrdering.Order(accounts, AccountSortOrder.Original,
+        _ => throw new InvalidOperationException("Original order must not score quota.")).SequenceEqual(accounts),
+        "Original order must remain unchanged.");
+    Assert(AccountOrdering.Order(accounts, AccountSortOrder.AvailableFirst,
+        account => AccountQuotaRank.FromRemaining(account.Session, account.Weekly, account.Error))
+        .Select(account => account.Name).SequenceEqual(
+            ["Codex RQR", "Codex U", "Claude Patricio", "Claude RQR", "Claude U", "Unknown", "Signed out"]),
+        "Available first preserves discovery order within availability groups.");
+}
+
+static void KeepsQuotaOrderingStable()
+{
+    AccountQuotaRank tied = AccountQuotaRank.FromRemaining(45, 80);
+    var accounts = new[] { (Id: "first", Rank: tied), (Id: "second", Rank: tied),
+        (Id: "third", Rank: AccountQuotaRank.FromRemaining(80, 45)) };
+    Assert(AccountOrdering.Order(accounts, AccountSortOrder.MostQuota, account => account.Rank).SequenceEqual(accounts),
+        "Equal scores must not jump around, including when the limiting windows are reversed.");
+    Assert(AccountQuotaRank.FromRemaining(70, null) == new AccountQuotaRank(0, 70, 70),
+        "Use the reported quota when only one window exists, not an invented 100% for the missing one.");
+    Assert(AccountQuotaRank.FromRemaining(null, 0).Group == 1, "One exhausted window makes the account exhausted.");
+    Assert(AccountQuotaRank.FromRemaining(null, null).Group == 2, "Unknown quota must not outrank usable quota.");
+    Assert(AccountQuotaRank.FromRemaining(100, 100, true).Group == 3, "Authentication errors belong at the end.");
+    Assert(AccountQuotaRank.FromRemaining(double.NaN, double.PositiveInfinity).Group == 2, "Reject non-finite data.");
+    Assert(AccountQuotaRank.FromRemaining(-1, 101) == new AccountQuotaRank(1, 0, 100), "Clamp quota bounds.");
+    Assert(!AccountOrdering.Order(Array.Empty<AccountQuotaRank>(), AccountSortOrder.MostQuota, rank => rank).Any(),
+        "An empty list needs no special-case UI handling.");
+    var updated = new[] { (Id: "first", Rank: AccountQuotaRank.FromRemaining(20, 80)),
+        (Id: "second", Rank: AccountQuotaRank.FromRemaining(90, 80)) };
+    Assert(AccountOrdering.Order(updated, AccountSortOrder.MostQuota, account => account.Rank).First().Id == "second",
+        "A new snapshot must immediately change the order when real quota changes.");
+}
+
+static void MigratesAccountOrdering()
+{
+    Assert(AccountOrdering.ResolveOrder(null, true) == AccountSortOrder.AvailableFirst, "Preserve the old default.");
+    Assert(AccountOrdering.ResolveOrder(null, false) == AccountSortOrder.Original, "Preserve disabled available-first.");
+    Assert(AccountOrdering.ResolveOrder("invalid", false) == AccountSortOrder.Original, "Invalid stored values fall back safely.");
+    Assert(AccountOrdering.ResolveOrder("99", true) == AccountSortOrder.AvailableFirst, "Reject unknown numeric enum values.");
+    foreach (AccountSortOrder order in Enum.GetValues<AccountSortOrder>())
+    {
+        string stored = ThemeCatalog.FormatOption(order);
+        Assert(AccountOrdering.ResolveOrder(stored, true) == order && AccountOrdering.ResolveOrder(stored, false) == order,
+            "An explicit stored choice overrides the legacy flag after saving and reloading.");
+        Assert(AccountOrdering.ResolveOrder(stored.ToUpperInvariant(), true) == order, "Parse preferences case-insensitively.");
     }
 }
 

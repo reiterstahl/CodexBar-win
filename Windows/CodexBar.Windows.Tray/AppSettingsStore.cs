@@ -172,7 +172,10 @@ public sealed class AppSettings
 
     public bool ShowPace { get; set; } = true;
 
+    /// <summary>Legacy preference retained for settings migration and older builds.</summary>
     public bool AvailableFirst { get; set; } = true;
+
+    public string? AccountOrder { get; set; }
 
     public bool NotifyOnRecovery { get; set; } = true;
 
@@ -207,6 +210,9 @@ public sealed class AppSettings
         ChartKind = ThemeCatalog.FormatOption(ThemeCatalog.ParseOption(ChartKind, Tray.ChartKind.Bar));
         ColorMode = ThemeCatalog.FormatOption(ThemeCatalog.ParseOption(ColorMode, ChartColorMode.Accent));
         Density = ThemeCatalog.FormatOption(ThemeCatalog.ParseOption(Density, Tray.Density.Comfortable));
+        AccountSortOrder order = AccountOrdering.ResolveOrder(AccountOrder, AvailableFirst);
+        AccountOrder = ThemeCatalog.FormatOption(order);
+        AvailableFirst = order != AccountSortOrder.Original;
         Language = Language is Loc.Spanish or Loc.English ? Language : Loc.Automatic;
         WindowOpacity = double.IsFinite(WindowOpacity)
             ? Math.Clamp(Math.Round(WindowOpacity, 2), MainWindowViewModel.MinimumWindowOpacity, 1.0)
@@ -229,6 +235,7 @@ public sealed class AppSettings
         ShowUsedPercent = false;
         ShowPace = true;
         AvailableFirst = true;
+        AccountOrder = null;
         NotifyOnRecovery = true;
         DynamicTrayIcon = true;
     }

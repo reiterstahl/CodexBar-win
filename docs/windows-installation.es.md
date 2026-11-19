@@ -174,6 +174,17 @@ se colorean los gráficos (acento, por nivel de cuota o un color por proveedor),
 si se muestra el porcentaje disponible o usado, densidad y tamaño de la
 interfaz (80% a 160%). Todo se aplica al instante y se guarda solo.
 
+En **Personalizar → Orden de las cuentas**, elige **Más cuota disponible** para
+priorizar las cuentas con mayor margen tanto en **Sesión** como en **Semanal**.
+Se compara primero el menor de los dos saldos disponibles y luego el otro en
+caso de empate: una cuenta con 100 % de sesión pero 1 % semanal queda por
+debajo de otra con 60 % en ambas cuotas. No es un promedio ni una equivalencia
+de tokens entre proveedores. Las agotadas quedan debajo; las cuentas sin datos
+o con errores, al final. Si un proveedor solo informa una cuota, se usa esa.
+El orden se recalcula al refrescar y funciona igual en Cards, Summary y Mini.
+También puedes elegir **Original** (orden de detección) o **Con cuota primero**
+(comportamiento anterior). Se conserva tu preferencia anterior al actualizar.
+
 Cuando una cuenta no tiene una sesión válida, su tarjeta muestra **Sin sesión**
 y el botón **Copiar login**. El botón copia al portapapeles el bloque de
 PowerShell correcto para esa cuenta concreta, incluida su carpeta aislada. No
@@ -194,8 +205,8 @@ línea vertical sobre la barra indica dónde deberías estar si consumieras pare
 hasta la renovación, y un texto avisa si a este ritmo la cuota se agota antes.
 
 Si **Sesión** o **Semanal** llega a 0% disponible, la tarjeta usa un fondo rojo
-tenue y se mueve debajo de las cuentas que todavía tienen cuota (se puede
-desactivar en **Personalizar**). Mientras está agotada, su gráfico pasa a medir
+tenue y se mueve debajo de las cuentas que todavía tienen cuota (salvo que
+elijas **Original** en **Orden de las cuentas**). Mientras está agotada, su gráfico pasa a medir
 el **tiempo de espera restante**, no el uso: se vacía y cambia gradualmente de
 rojo (100 %) a amarillo (50 %) y verde (25 % o menos). El porcentaje usa como
 referencia el período completo de la cuota: en una sesión de 5 horas, 2 h 30 min

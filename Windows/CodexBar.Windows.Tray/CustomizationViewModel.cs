@@ -95,6 +95,10 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
         Densities = Choices(
             [(Density.Comfortable, "DensityComfortable"), (Density.Compact, "DensityCompact")],
             value => Change(settings => settings.Density = value));
+        AccountOrders = Choices(
+            [(AccountSortOrder.Original, "OrderOriginal"), (AccountSortOrder.AvailableFirst, "OrderAvailableFirst"),
+                (AccountSortOrder.MostQuota, "OrderMostQuota")],
+            value => Change(settings => settings.AccountOrder = value));
         // Language names stay in their own language so they can always be found.
         Languages =
         [
@@ -121,6 +125,8 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
     public IReadOnlyList<OptionViewModel> Views { get; }
 
     public IReadOnlyList<OptionViewModel> Densities { get; }
+
+    public IReadOnlyList<OptionViewModel> AccountOrders { get; }
 
     public IReadOnlyList<OptionViewModel> Languages { get; }
 
@@ -149,12 +155,6 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
     {
         get => Settings.ShowPace;
         set => Change(settings => settings.ShowPace = value);
-    }
-
-    public bool AvailableFirst
-    {
-        get => Settings.AvailableFirst;
-        set => Change(settings => settings.AvailableFirst = value);
     }
 
     public bool NotifyOnRecovery
@@ -277,9 +277,10 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
         Select(PercentModes, settings.ShowUsedPercent ? "used" : "available");
         Select(Views, settings.ViewMode);
         Select(Densities, settings.Density);
+        Select(AccountOrders, settings.AccountOrder);
         Select(Languages, settings.Language);
         foreach (OptionViewModel option in Accents.Concat(Charts).Concat(ColorModes).Concat(PercentModes)
-            .Concat(Views).Concat(Densities).Concat(Languages))
+            .Concat(Views).Concat(Densities).Concat(AccountOrders).Concat(Languages))
         {
             option.RaisePreviewChanged();
         }
