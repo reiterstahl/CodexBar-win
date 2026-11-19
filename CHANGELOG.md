@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.7.0
+
+- Nuevo selector **Gráfico con cuota agotada** en Personalizar: **Uso de cuota**
+  (clásico, por defecto) o **Tiempo de espera** (barra que se vacía hasta el reset).
+  La elección se guarda y se aplica al instante en todas las vistas y gráficos.
+- Las cuentas agotadas muestran **Sin cuota incluida** en rojo y la fecha/hora exacta
+  del último reset necesario, incluso si otra cuota conserva capacidad.
+- La previsión de recuperación y el pie de ventana consideran todas las cuotas agotadas,
+  no el primer reset. Si falta una fecha bloqueante, no se inventa un desbloqueo.
+- Pasada la fecha, la cuenta permanece agotada y muestra **Esperando confirmación**
+  hasta que el proveedor confirme disponibilidad. Los créditos extra siguen separados.
+
 ## 1.6.0
 
 - Nuevo selector **Orden de las cuentas** en Personalizar: Original, Con cuota primero

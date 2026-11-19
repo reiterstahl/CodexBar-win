@@ -10,6 +10,12 @@ public enum PaceKind
     Exhausted,
 }
 
+public enum ExhaustedMeterMode
+{
+    Usage,
+    ResetWait,
+}
+
 /// <param name="ElapsedFraction">Share of the window already elapsed, from 0 to 1.</param>
 /// <param name="MinutesToEmpty">Projected minutes until the quota reaches 0 at the current rate.</param>
 public readonly record struct PaceEstimate(
@@ -27,24 +33,44 @@ public static class UsageMath
     public const int WeeklyWindowMinutes = 10_080;
 
     /// <summary>
-    /// An exhausted quota counts down against its full window, not against when exhaustion was
-    /// first observed. Missing reset metadata keeps the normal usage meter instead of guessing.
+    /// Classic usage is the default. In ResetWait mode an exhausted quota counts down against
+    /// its full window, not against when exhaustion was first observed. Missing reset metadata
+    /// keeps the normal usage meter instead of guessing.
     /// </summary>
     public static QuotaMeterState CalculateMeter(
         double usedPercent,
         bool showUsed,
         int? windowMinutes,
         DateTimeOffset? resetsAt,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        ExhaustedMeterMode mode = ExhaustedMeterMode.Usage)
     {
         double used = Math.Clamp(usedPercent, 0, 100);
-        if (used >= 100 && windowMinutes is > 0 && resetsAt is DateTimeOffset reset)
+        if (mode == ExhaustedMeterMode.ResetWait && used >= 100 &&
+            windowMinutes is > 0 && resetsAt is DateTimeOffset reset)
         {
             double fraction = Math.Clamp((reset - now).TotalMinutes / windowMinutes.Value, 0, 1);
             return new QuotaMeterState(fraction * 100, true);
         }
 
         return new QuotaMeterState(showUsed ? used : 100 - used, false);
+    }
+
+    /// <summary>
+    /// Every exhausted window must reset before included quota is usable again. An unknown
+    /// blocking reset prevents a reliable account-level forecast; non-exhausted windows do not.
+    /// </summary>
+    public static DateTimeOffset? AccountRecoveryAt(
+        IEnumerable<(bool IsExhausted, DateTimeOffset? ResetsAt)> windows)
+    {
+        DateTimeOffset? latest = null;
+        foreach ((bool exhausted, DateTimeOffset? reset) in windows)
+        {
+            if (!exhausted) continue;
+            if (reset is null) return null;
+            if (latest is null || reset > latest) latest = reset;
+        }
+        return latest;
     }
 
     /// <summary>Continuous red → yellow (50%) → green (25%) → lighter green (0%).</summary>

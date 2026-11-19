@@ -9,7 +9,8 @@ public sealed record AppearanceOptions(
     ChartColorMode ColorMode,
     Density Density,
     bool ShowUsed,
-    bool ShowPace);
+    bool ShowPace,
+    ExhaustedMeterMode ExhaustedMeter);
 
 /// <summary>
 /// Resolved colors for the active theme and accent. Theme brushes are published as

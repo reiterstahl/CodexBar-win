@@ -185,6 +185,20 @@ El orden se recalcula al refrescar y funciona igual en Cards, Summary y Mini.
 También puedes elegir **Original** (orden de detección) o **Con cuota primero**
 (comportamiento anterior). Se conserva tu preferencia anterior al actualizar.
 
+En **Personalizar → Gráfico con cuota agotada** (**Settings → Exhausted quota meter**)
+puedes elegir entre **Uso de cuota / Quota usage** y **Tiempo de espera / Reset countdown**.
+El primero es el predeterminado: conserva 100 % usado o 0 % libre en rojo. El segundo
+muestra el porcentaje del período de espera que falta, con la barra que se vacía y
+cambia de rojo a amarillo y verde. Cambiar de modo no cambia los saldos reales ni el
+orden de las cuentas, y se guarda automáticamente para todas las vistas y gráficos.
+
+En ambos modos, debajo del nombre de una cuenta agotada se muestra **Sin cuota incluida**
+en rojo y **Hasta VIE-20NOV, 12:00PM**, por ejemplo. Se usa el **último reset necesario**
+entre todas las cuotas agotadas: renovar la sesión no desbloquea una semana aún agotada.
+Si falta una fecha bloqueante, se indica que no se conoce el desbloqueo. Pasada la fecha,
+se muestra **Esperando confirmación** hasta que el proveedor informe cuota disponible.
+Esto no oculta ni modifica los créditos extra que pueda tener la cuenta.
+
 Cuando una cuenta no tiene una sesión válida, su tarjeta muestra **Sin sesión**
 y el botón **Copiar login**. El botón copia al portapapeles el bloque de
 PowerShell correcto para esa cuenta concreta, incluida su carpeta aislada. No
@@ -206,7 +220,7 @@ hasta la renovación, y un texto avisa si a este ritmo la cuota se agota antes.
 
 Si **Sesión** o **Semanal** llega a 0% disponible, la tarjeta usa un fondo rojo
 tenue y se mueve debajo de las cuentas que todavía tienen cuota (salvo que
-elijas **Original** en **Orden de las cuentas**). Mientras está agotada, su gráfico pasa a medir
+elijas **Original** en **Orden de las cuentas**). Con **Tiempo de espera** seleccionado, su gráfico pasa a medir
 el **tiempo de espera restante**, no el uso: se vacía y cambia gradualmente de
 rojo (100 %) a amarillo (50 %) y verde (25 % o menos). El porcentaje usa como
 referencia el período completo de la cuota: en una sesión de 5 horas, 2 h 30 min

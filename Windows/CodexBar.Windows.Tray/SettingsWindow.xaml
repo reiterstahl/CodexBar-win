@@ -618,6 +618,18 @@
                     </DockPanel>
 
                     <StackPanel Margin="0,20,0,0">
+                        <TextBlock Style="{StaticResource SectionLabelStyle}" Text="{local:Tr SectionExhaustedMeter}" />
+                        <Border Style="{StaticResource SegmentHostStyle}">
+                            <ItemsControl
+                                AutomationProperties.Name="{local:Tr SectionExhaustedMeter}"
+                                ItemTemplate="{StaticResource SegmentTemplate}"
+                                ItemsPanel="{StaticResource SegmentPanel}"
+                                ItemsSource="{Binding Customization.ExhaustedMeters}" />
+                        </Border>
+                        <TextBlock Margin="0,6,0,0" Style="{StaticResource SettingHintStyle}" Text="{local:Tr ExhaustedMeterHint}" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,20,0,0">
                         <TextBlock Style="{StaticResource SectionLabelStyle}" Text="{local:Tr SectionAccountOrder}" />
                         <Border Style="{StaticResource SegmentHostStyle}">
                             <ItemsControl

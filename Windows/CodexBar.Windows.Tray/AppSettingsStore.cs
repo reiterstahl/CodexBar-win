@@ -177,6 +177,8 @@ public sealed class AppSettings
 
     public string? AccountOrder { get; set; }
 
+    public string? ExhaustedMeter { get; set; }
+
     public bool NotifyOnRecovery { get; set; } = true;
 
     public bool DynamicTrayIcon { get; set; } = true;
@@ -213,6 +215,8 @@ public sealed class AppSettings
         AccountSortOrder order = AccountOrdering.ResolveOrder(AccountOrder, AvailableFirst);
         AccountOrder = ThemeCatalog.FormatOption(order);
         AvailableFirst = order != AccountSortOrder.Original;
+        ExhaustedMeter = ThemeCatalog.FormatOption(
+            ThemeCatalog.ParseOption(ExhaustedMeter, ExhaustedMeterMode.Usage));
         Language = Language is Loc.Spanish or Loc.English ? Language : Loc.Automatic;
         WindowOpacity = double.IsFinite(WindowOpacity)
             ? Math.Clamp(Math.Round(WindowOpacity, 2), MainWindowViewModel.MinimumWindowOpacity, 1.0)
@@ -236,6 +240,7 @@ public sealed class AppSettings
         ShowPace = true;
         AvailableFirst = true;
         AccountOrder = null;
+        ExhaustedMeter = null;
         NotifyOnRecovery = true;
         DynamicTrayIcon = true;
     }

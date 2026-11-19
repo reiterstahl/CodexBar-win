@@ -99,6 +99,9 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
             [(AccountSortOrder.Original, "OrderOriginal"), (AccountSortOrder.AvailableFirst, "OrderAvailableFirst"),
                 (AccountSortOrder.MostQuota, "OrderMostQuota")],
             value => Change(settings => settings.AccountOrder = value));
+        ExhaustedMeters = Choices(
+            [(ExhaustedMeterMode.Usage, "ExhaustedUsage"), (ExhaustedMeterMode.ResetWait, "ExhaustedWait")],
+            value => Change(settings => settings.ExhaustedMeter = value));
         // Language names stay in their own language so they can always be found.
         Languages =
         [
@@ -127,6 +130,8 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
     public IReadOnlyList<OptionViewModel> Densities { get; }
 
     public IReadOnlyList<OptionViewModel> AccountOrders { get; }
+
+    public IReadOnlyList<OptionViewModel> ExhaustedMeters { get; }
 
     public IReadOnlyList<OptionViewModel> Languages { get; }
 
@@ -278,9 +283,10 @@ public sealed class CustomizationViewModel : INotifyPropertyChanged
         Select(Views, settings.ViewMode);
         Select(Densities, settings.Density);
         Select(AccountOrders, settings.AccountOrder);
+        Select(ExhaustedMeters, settings.ExhaustedMeter);
         Select(Languages, settings.Language);
         foreach (OptionViewModel option in Accents.Concat(Charts).Concat(ColorModes).Concat(PercentModes)
-            .Concat(Views).Concat(Densities).Concat(AccountOrders).Concat(Languages))
+            .Concat(Views).Concat(Densities).Concat(AccountOrders).Concat(ExhaustedMeters).Concat(Languages))
         {
             option.RaisePreviewChanged();
         }

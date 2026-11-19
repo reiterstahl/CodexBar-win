@@ -40,7 +40,10 @@ Reset timing is presented as a minute-level live countdown with a short reset da
 localized weekday/date in each quota's tooltip. Countdown labels update every minute without launching provider processes; provider
 usage still refreshes every five minutes.
 
-When a quota is exhausted and its reset time and window length are known, its meter
+Settings offers **Exhausted quota meter → Quota usage / Reset countdown**. Quota usage
+is the default (including upgrades without a stored choice), showing the actual 100% used
+or 0% free in red. The setting persists and applies immediately to all views and chart types.
+When Reset countdown is selected and an exhausted quota's reset time and window length are known, its meter
 switches from quota usage to the percentage of the full window still left to wait.
 For a five-hour session, 2.5 hours left means 50%; the same calculation applies to
 weekly windows or any other supplied window length. The meter empties continuously
@@ -50,6 +53,14 @@ This works with either usage display preference, every chart type and every view
 the existing minute timer refreshes it without another provider call. Unknown reset
 metadata keeps the usual meter. The card remains exhausted until the provider reports
 available quota, even if the countdown reaches zero. Extra-usage balances are unchanged.
+
+In either mode, an exhausted account explicitly shows **Included quota exhausted** and
+**Until FRI-20NOV, 12:00PM** below its name in red. This account-level forecast, also used
+by the footer, selects the latest reset across all exhausted windows, not the earliest.
+If any blocking reset is unknown, recovery time is unknown rather than guessed. After
+the forecast time passes, the label says **Awaiting confirmation** until the provider
+reports usable quota. Non-exhausted windows do not delay the forecast. Extra usage is
+still displayed independently and may allow paid usage despite the included limit.
 
 Settings includes an **Account order** selector: Original, Available first (the previous
 default), and Most quota left. The last mode ranks accounts by descending

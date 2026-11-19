@@ -118,8 +118,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         get
         {
             ProviderCardViewModel? next = NextRecovery();
-            if (next?.ExhaustedWindow?.ResetsAt is DateTimeOffset resetsAt)
+            if (next?.RecoveryAt is DateTimeOffset resetsAt)
             {
+                if (resetsAt <= DateTimeOffset.Now)
+                {
+                    return Loc.F("FooterAwaitingQuota", next.DisplayName);
+                }
                 return Loc.F(
                     "FooterNext",
                     next.DisplayName,
@@ -447,8 +451,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private ProviderCardViewModel? NextRecovery()
     {
         return _cards
-            .Where(card => card.ExhaustedWindow?.ResetsAt is not null)
-            .OrderBy(card => card.ExhaustedWindow!.ResetsAt)
+            .Where(card => card.RecoveryAt is not null)
+            .OrderBy(card => card.RecoveryAt)
             .FirstOrDefault();
     }
 
@@ -481,7 +485,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             ThemeCatalog.ParseOption(settings.ColorMode, ChartColorMode.Accent),
             ThemeCatalog.ParseOption(settings.Density, Density.Comfortable),
             settings.ShowUsedPercent,
-            settings.ShowPace);
+            settings.ShowPace,
+            ThemeCatalog.ParseOption(settings.ExhaustedMeter, ExhaustedMeterMode.Usage));
     }
 
     private static bool HasUsableQuota(ProviderSnapshot snapshot)
@@ -637,10 +642,27 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
     public RateWindowViewModel? WeeklyWindow =>
         Windows.FirstOrDefault(window => window.Id.Equals("weekly", StringComparison.OrdinalIgnoreCase));
 
-    public RateWindowViewModel? ExhaustedWindow => Windows
-        .Where(window => window.IsExhausted)
-        .OrderBy(window => window.ResetsAt ?? DateTimeOffset.MaxValue)
-        .FirstOrDefault();
+    public bool HasExhaustedQuota => Windows.Any(window => window.IsExhausted);
+
+    public DateTimeOffset? RecoveryAt => UsageMath.AccountRecoveryAt(
+        Windows.Select(window => (window.IsExhausted, window.ResetsAt)));
+
+    public bool ShowQuotaStatus => !HasError && HasExhaustedQuota;
+
+    public string QuotaStatusLabel => Loc.T("IncludedQuotaExhausted");
+
+    public string QuotaRecoveryLabel => RecoveryAt is not DateTimeOffset reset
+        ? Loc.T("AccountResetUnknown")
+        : reset <= DateTimeOffset.Now
+            ? Loc.T("AwaitingQuotaConfirmation")
+            : Loc.F("UnavailableUntil", UsageMath.FormatExactReset(reset, Loc.Instance.Culture));
+
+    public string QuotaRecoveryTooltip => RecoveryAt is DateTimeOffset reset
+        ? Loc.F("AccountResetTooltip", reset.ToLocalTime().ToString(Loc.T("DateLong"), Loc.Instance.Culture))
+        : Loc.T("AccountResetUnknown");
+
+    public Brush? QuotaStatusBrush => _palette?.Brush(
+        _palette.Status.Critical.EnsureContrast(CardBackground, 4.5));
 
     public bool IsCardsView => View == ViewMode.Cards;
 
@@ -689,11 +711,11 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
                 return Loc.T("PillAvailableAgain");
             }
 
-            if (ExhaustedWindow is RateWindowViewModel exhausted)
+            if (HasExhaustedQuota)
             {
-                return exhausted.ResetsAt is DateTimeOffset resetsAt
+                return RecoveryAt is DateTimeOffset resetsAt && resetsAt > DateTimeOffset.Now
                     ? Loc.F("BackIn", UsageMath.FormatDuration(resetsAt - DateTimeOffset.Now))
-                    : Loc.T("LimitReached");
+                    : Loc.T("IncludedQuotaExhausted");
             }
 
             if (RequiresLogin)
@@ -853,10 +875,9 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
                 return _palette.Status.Ok.EnsureContrast(CardBackground, 4.5);
             }
 
-            if (ExhaustedWindow is RateWindowViewModel exhausted)
+            if (HasExhaustedQuota)
             {
-                RgbColor color = exhausted.IsResetSoon ? _palette.Status.Ok : _palette.Status.Warn;
-                return color.EnsureContrast(CardBackground, 4.5);
+                return _palette.Status.Critical.EnsureContrast(CardBackground, 4.5);
             }
 
             return RequiresLogin
@@ -890,6 +911,8 @@ public sealed class ProviderCardViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PillText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PillForeground)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PillBackground)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(QuotaRecoveryLabel)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(QuotaRecoveryTooltip)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ResetChipForeground)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ResetChipBackground)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ResetCreditCount)));
@@ -1076,7 +1099,8 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
     }
 
     private QuotaMeterState Meter => UsageMath.CalculateMeter(
-        UsedPercent, ShowUsed, WindowMinutes, ResetsAt, DateTimeOffset.Now);
+        UsedPercent, ShowUsed, WindowMinutes, ResetsAt, DateTimeOffset.Now,
+        _style?.Options.ExhaustedMeter ?? ExhaustedMeterMode.Usage);
 
     public double DisplayPercent => Meter.Percent;
 
@@ -1209,7 +1233,7 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
 
             RgbColor color = Meter.IsResetCountdown
                 ? BaseColor
-                : IsResetSoon ? palette.Status.Ok : palette.Status.Warn;
+                : palette.Status.Critical;
             return palette.Brush(color.EnsureContrast(_style.CardBackground, 4.5));
         }
     }

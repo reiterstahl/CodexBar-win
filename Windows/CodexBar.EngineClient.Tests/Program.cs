@@ -23,6 +23,8 @@ var tests = new (string Name, Action Run)[]
     ("projects pace until reset", ProjectsPaceUntilReset),
     ("counts down exhausted quotas without changing usage", CountsDownExhaustedQuotas),
     ("shades reset countdowns continuously with readable contrast", ShadesResetCountdowns),
+    ("selects classic usage or reset wait for exhausted meters", SelectsExhaustedMeterModes),
+    ("waits for every blocking quota before forecasting recovery", WaitsForEveryBlockingReset),
     ("ranks accounts by both session and weekly quota", OrdersByCombinedQuota),
     ("keeps quota ordering stable and handles missing data", KeepsQuotaOrderingStable),
     ("migrates account order preferences without changing old choices", MigratesAccountOrdering),
@@ -360,35 +362,95 @@ static void CountsDownExhaustedQuotas()
         {
             foreach (double fraction in new[] { 1.0, 0.75, 0.5, 0.25, 0.1, 0.0 })
             {
-                QuotaMeterState meter = UsageMath.CalculateMeter(100, showUsed, minutes,
+                QuotaMeterState meter = WaitMeter(100, showUsed, minutes,
                     now.AddMinutes(minutes * fraction), now);
                 Assert(meter.IsResetCountdown && Math.Abs(meter.Percent - (100 * fraction)) < 0.000001,
                     "Measure wait time for session, weekly and supplied monthly windows in either usage mode.");
             }
         }
 
-        Assert(UsageMath.CalculateMeter(100, showUsed, 300, now.AddHours(8), now) == new QuotaMeterState(100, true),
+        Assert(WaitMeter(100, showUsed, 300, now.AddHours(8), now) == new QuotaMeterState(100, true),
             "Clamp waits longer than the supplied window.");
-        Assert(UsageMath.CalculateMeter(100, showUsed, 300, now.AddMinutes(-1), now) == new QuotaMeterState(0, true),
+        Assert(WaitMeter(100, showUsed, 300, now.AddMinutes(-1), now) == new QuotaMeterState(0, true),
             "An overdue reset remains exhausted until the provider confirms fresh quota.");
-        Assert(UsageMath.CalculateMeter(99, showUsed, 300, now.AddMinutes(75), now) ==
+        Assert(WaitMeter(99, showUsed, 300, now.AddMinutes(75), now) ==
             new QuotaMeterState(showUsed ? 99 : 1, false), "Do not replace a quota that still has capacity.");
-        Assert(UsageMath.CalculateMeter(0, showUsed, 300, now.AddHours(5), now) ==
+        Assert(WaitMeter(0, showUsed, 300, now.AddHours(5), now) ==
             new QuotaMeterState(showUsed ? 0 : 100, false), "Restore the usage meter when quota returns.");
         foreach (int? span in new int?[] { null, 0, -1 })
         {
-            Assert(!UsageMath.CalculateMeter(100, showUsed, span, now.AddHours(5), now).IsResetCountdown,
+            Assert(!WaitMeter(100, showUsed, span, now.AddHours(5), now).IsResetCountdown,
                 "Never invent a window duration, including calendar months.");
         }
-        Assert(!UsageMath.CalculateMeter(100, showUsed, 300, null, now).IsResetCountdown,
+        Assert(!WaitMeter(100, showUsed, 300, null, now).IsResetCountdown,
             "Do not fabricate a reset date.");
     }
 
     DateTimeOffset reset = now.AddMinutes(150);
-    Assert(UsageMath.CalculateMeter(100, true, 300, reset, now.AddMinutes(75)).Percent == 25,
+    Assert(WaitMeter(100, true, 300, reset, now.AddMinutes(75)).Percent == 25,
         "Wait progress advances locally without a new provider snapshot.");
-    Assert(UsageMath.CalculateMeter(100, true, 300, reset.ToOffset(TimeSpan.FromHours(-6)), now).Percent == 50,
+    Assert(WaitMeter(100, true, 300, reset.ToOffset(TimeSpan.FromHours(-6)), now).Percent == 50,
         "Time zones must not change the remaining fraction.");
+
+    static QuotaMeterState WaitMeter(double used, bool showUsed, int? minutes, DateTimeOffset? reset, DateTimeOffset at)
+        => UsageMath.CalculateMeter(used, showUsed, minutes, reset, at, ExhaustedMeterMode.ResetWait);
+}
+
+static void SelectsExhaustedMeterModes()
+{
+    var now = new DateTimeOffset(2026, 11, 19, 12, 0, 0, TimeSpan.Zero);
+    foreach (bool showUsed in new[] { false, true })
+    {
+        QuotaMeterState classic = UsageMath.CalculateMeter(100, showUsed, 300, now.AddMinutes(36), now);
+        Assert(classic == new QuotaMeterState(showUsed ? 100 : 0, false),
+            "Default to actual exhausted usage, not a small green wait meter.");
+        Assert(UsageMath.CalculateMeter(100, showUsed, 300, now.AddMinutes(36), now, ExhaustedMeterMode.ResetWait) ==
+            new QuotaMeterState(12, true), "Keep countdown mode available when explicitly chosen.");
+        foreach (ExhaustedMeterMode mode in Enum.GetValues<ExhaustedMeterMode>())
+        {
+            Assert(UsageMath.CalculateMeter(16, showUsed, 300, now.AddHours(5), now, mode) ==
+                new QuotaMeterState(showUsed ? 16 : 84, false), "Non-exhausted windows keep actual usage in both modes.");
+            Assert(UsageMath.CalculateMeter(100, showUsed, 300, now.AddMinutes(-1), now, mode) ==
+                new QuotaMeterState(mode == ExhaustedMeterMode.ResetWait ? 0 : showUsed ? 100 : 0,
+                    mode == ExhaustedMeterMode.ResetWait), "An elapsed reset must never pretend quota is recovered.");
+        }
+    }
+
+    Assert(ThemeCatalog.ParseOption<ExhaustedMeterMode>(null, ExhaustedMeterMode.Usage) == ExhaustedMeterMode.Usage,
+        "Old settings without the new choice migrate to the unambiguous classic meter.");
+    Assert(ThemeCatalog.ParseOption("invalid", ExhaustedMeterMode.Usage) == ExhaustedMeterMode.Usage,
+        "Invalid settings fall back to classic usage.");
+    foreach (ExhaustedMeterMode mode in Enum.GetValues<ExhaustedMeterMode>())
+    {
+        Assert(ThemeCatalog.ParseOption(ThemeCatalog.FormatOption(mode), ExhaustedMeterMode.Usage) == mode,
+            "Both selected modes round-trip through stored preferences.");
+    }
+}
+
+static void WaitsForEveryBlockingReset()
+{
+    var now = new DateTimeOffset(2026, 11, 19, 12, 0, 0, TimeSpan.Zero);
+    DateTimeOffset sessionReset = now.AddHours(3);
+    DateTimeOffset weeklyReset = now.AddDays(1);
+    Assert(UsageMath.AccountRecoveryAt([(true, sessionReset), (true, weeklyReset)]) == weeklyReset,
+        "The earlier session reset does not unblock an exhausted weekly quota.");
+    Assert(UsageMath.AccountRecoveryAt([(false, sessionReset), (true, weeklyReset)]) == weeklyReset,
+        "A usable session must not hide the blocking weekly reset.");
+    Assert(UsageMath.AccountRecoveryAt([(true, sessionReset), (false, weeklyReset)]) == sessionReset,
+        "Ignore a later weekly reset when that quota still has capacity.");
+    Assert(UsageMath.AccountRecoveryAt([(true, weeklyReset), (true, sessionReset)]) == weeklyReset,
+        "Window enumeration order must not affect the forecast.");
+    Assert(UsageMath.AccountRecoveryAt([(true, sessionReset), (true, null)]) is null,
+        "Never promise full recovery when one blocking reset is unknown.");
+    Assert(UsageMath.AccountRecoveryAt([(false, null), (true, sessionReset)]) == sessionReset,
+        "An unknown reset on a non-exhausted window does not block forecasting.");
+    Assert(UsageMath.AccountRecoveryAt([(false, sessionReset), (false, weeklyReset)]) is null &&
+        UsageMath.AccountRecoveryAt([]) is null, "Do not show an exhausted-account forecast for usable or empty accounts.");
+    DateTimeOffset overdue = now.AddMinutes(-1);
+    Assert(UsageMath.AccountRecoveryAt([(true, overdue)]) == overdue,
+        "Retain exhausted state after the date passes until the provider confirms recovery.");
+    Assert(UsageMath.AccountRecoveryAt([(true, weeklyReset.ToOffset(TimeSpan.FromHours(-6))), (true, sessionReset)]) == weeklyReset,
+        "Compare actual instants, not local clock labels.");
 }
 
 static void ShadesResetCountdowns()
