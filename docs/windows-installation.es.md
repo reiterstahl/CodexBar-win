@@ -195,8 +195,18 @@ hasta la renovación, y un texto avisa si a este ritmo la cuota se agota antes.
 
 Si **Sesión** o **Semanal** llega a 0% disponible, la tarjeta usa un fondo rojo
 tenue y se mueve debajo de las cuentas que todavía tienen cuota (se puede
-desactivar en **Personalizar**). Mientras está agotada, la tarjeta muestra
-**Vuelve en …** en ámbar, que cambia a verde cuando quedan 30 minutos o menos.
+desactivar en **Personalizar**). Mientras está agotada, su gráfico pasa a medir
+el **tiempo de espera restante**, no el uso: se vacía y cambia gradualmente de
+rojo (100 %) a amarillo (50 %) y verde (25 % o menos). El porcentaje usa como
+referencia el período completo de la cuota: en una sesión de 5 horas, 2 h 30 min
+pendientes equivalen al 50 %, y 1 h 15 min al 25 %. La misma regla se aplica a
+la cuota semanal. La etiqueta **de espera** y el tooltip explican el cambio.
+**Vuelve en …** conserva la duración o la fecha exacta elegida al hacer clic.
+La barra y sus colores se actualizan cada minuto, sin nuevas consultas al proveedor,
+en todas las vistas y tipos de gráfico. Si falta la fecha o una duración conocida,
+no se inventa un progreso: se conserva el indicador habitual. Llegar a cero en
+la cuenta regresiva no implica que la cuota ya esté disponible; la tarjeta
+permanece agotada hasta que el proveedor lo confirme.
 Cuando las cuotas vuelven, la tarjeta regresa arriba, muestra **Disponible otra
 vez** y parpadea suavemente en verde; haz clic sobre ella para descartar la
 alerta. Si está activado, Windows muestra además una notificación.

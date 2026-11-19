@@ -1071,13 +1071,18 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    public double DisplayPercent => ShowUsed ? UsedPercent : RemainingPercent;
+    private QuotaMeterState Meter => UsageMath.CalculateMeter(
+        UsedPercent, ShowUsed, WindowMinutes, ResetsAt, DateTimeOffset.Now);
+
+    public double DisplayPercent => Meter.Percent;
 
     public string PercentLabel => string.Create(
         CultureInfo.CurrentCulture,
         $"{Math.Round(DisplayPercent):0}%");
 
-    public string PercentCaption => Loc.T(ShowUsed ? "CaptionUsed" : "CaptionFree");
+    public string PercentCaption => Loc.T(Meter.IsResetCountdown
+        ? "CaptionResetWait"
+        : ShowUsed ? "CaptionUsed" : "CaptionFree");
 
     public MeterKind MeterKind => Chart switch
     {
@@ -1198,7 +1203,9 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
                 return palette.Brush(palette.Muted);
             }
 
-            RgbColor color = IsResetSoon ? palette.Status.Ok : palette.Status.Warn;
+            RgbColor color = Meter.IsResetCountdown
+                ? BaseColor
+                : IsResetSoon ? palette.Status.Ok : palette.Status.Warn;
             return palette.Brush(color.EnsureContrast(_style.CardBackground, 4.5));
         }
     }
@@ -1236,9 +1243,12 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
         ? string.Empty
         : ResetsAt.Value.ToLocalTime().ToString(Loc.T("DateLong"), Loc.Instance.Culture);
 
-    public string Tooltip => ResetDateLabel.Length == 0
-        ? Loc.F("ResetTooltipUnavailable", Label)
-        : Loc.F("ResetTooltip", Label, ResetDateLabel);
+    public string Tooltip => Meter.IsResetCountdown && ResetsAt is DateTimeOffset reset
+        ? Loc.F("ResetWaitTooltip", Label, PercentLabel,
+            UsageMath.FormatDuration(reset - DateTimeOffset.Now), ResetDateLabel)
+        : ResetDateLabel.Length == 0
+            ? Loc.F("ResetTooltipUnavailable", Label)
+            : Loc.F("ResetTooltip", Label, ResetDateLabel);
 
     public bool ShowPace => View == ViewMode.Cards &&
         _style?.Options.ShowPace == true &&
@@ -1302,7 +1312,10 @@ public sealed class RateWindowViewModel : INotifyPropertyChanged
             StatusColors status = _style.Palette.Status;
             if (IsExhausted)
             {
-                return status.Critical;
+                QuotaMeterState meter = Meter;
+                return meter.IsResetCountdown
+                    ? UsageMath.ResetCountdownColor(meter.Percent, status)
+                    : status.Critical;
             }
 
             return _style.Options.ColorMode switch

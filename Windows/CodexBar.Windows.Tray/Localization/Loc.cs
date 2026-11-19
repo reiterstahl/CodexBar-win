@@ -132,6 +132,10 @@ public sealed class Loc : INotifyPropertyChanged
             ["WindowWeekly"] = ("Semanal", "Weekly"),
             ["CaptionFree"] = ("libre", "free"),
             ["CaptionUsed"] = ("usado", "used"),
+            ["CaptionResetWait"] = ("de espera", "wait left"),
+            ["ResetWaitTooltip"] = (
+                "{0}: límite alcanzado. Queda {1} del período de espera ({2}). La barra mide tiempo, no cuota disponible. Se renueva el {3}.",
+                "{0}: limit reached. {1} of the waiting period remains ({2}). The meter shows time, not available quota. Resets on {3}."),
             ["ResetUnavailable"] = ("Renovación no disponible", "Reset unavailable"),
             ["ResettingNow"] = ("Renovando ahora", "Resetting now"),
             ["ResetsInLong"] = ("Se renueva en {0}", "Resets in {0}"),

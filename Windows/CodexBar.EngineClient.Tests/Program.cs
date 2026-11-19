@@ -21,6 +21,8 @@ var tests = new (string Name, Action Run)[]
     ("lifts custom accents to readable contrast", LiftsCustomAccentsToReadableContrast),
     ("picks readable ink for accent fills", PicksReadableInkForAccentFills),
     ("projects pace until reset", ProjectsPaceUntilReset),
+    ("counts down exhausted quotas without changing usage", CountsDownExhaustedQuotas),
+    ("shades reset countdowns continuously with readable contrast", ShadesResetCountdowns),
     ("formats countdown durations", FormatsCountdownDurations),
     ("parses stored appearance options", ParsesStoredAppearanceOptions),
     ("translates every string into both languages", TranslatesEveryString),
@@ -344,6 +346,72 @@ static void ProjectsPaceUntilReset()
         "Expected unknown pace without a window length.");
     Assert(UsageMath.EstimatePace(0, 300, now.AddMinutes(300), now).Kind == PaceKind.Enough,
         "Expected a fresh window to have enough quota.");
+}
+
+static void CountsDownExhaustedQuotas()
+{
+    var now = new DateTimeOffset(2026, 11, 19, 12, 0, 0, TimeSpan.Zero);
+    foreach (bool showUsed in new[] { false, true })
+    {
+        foreach (int minutes in new[] { 300, 10_080, 43_200 })
+        {
+            foreach (double fraction in new[] { 1.0, 0.75, 0.5, 0.25, 0.1, 0.0 })
+            {
+                QuotaMeterState meter = UsageMath.CalculateMeter(100, showUsed, minutes,
+                    now.AddMinutes(minutes * fraction), now);
+                Assert(meter.IsResetCountdown && Math.Abs(meter.Percent - (100 * fraction)) < 0.000001,
+                    "Measure wait time for session, weekly and supplied monthly windows in either usage mode.");
+            }
+        }
+
+        Assert(UsageMath.CalculateMeter(100, showUsed, 300, now.AddHours(8), now) == new QuotaMeterState(100, true),
+            "Clamp waits longer than the supplied window.");
+        Assert(UsageMath.CalculateMeter(100, showUsed, 300, now.AddMinutes(-1), now) == new QuotaMeterState(0, true),
+            "An overdue reset remains exhausted until the provider confirms fresh quota.");
+        Assert(UsageMath.CalculateMeter(99, showUsed, 300, now.AddMinutes(75), now) ==
+            new QuotaMeterState(showUsed ? 99 : 1, false), "Do not replace a quota that still has capacity.");
+        Assert(UsageMath.CalculateMeter(0, showUsed, 300, now.AddHours(5), now) ==
+            new QuotaMeterState(showUsed ? 0 : 100, false), "Restore the usage meter when quota returns.");
+        foreach (int? span in new int?[] { null, 0, -1 })
+        {
+            Assert(!UsageMath.CalculateMeter(100, showUsed, span, now.AddHours(5), now).IsResetCountdown,
+                "Never invent a window duration, including calendar months.");
+        }
+        Assert(!UsageMath.CalculateMeter(100, showUsed, 300, null, now).IsResetCountdown,
+            "Do not fabricate a reset date.");
+    }
+
+    DateTimeOffset reset = now.AddMinutes(150);
+    Assert(UsageMath.CalculateMeter(100, true, 300, reset, now.AddMinutes(75)).Percent == 25,
+        "Wait progress advances locally without a new provider snapshot.");
+    Assert(UsageMath.CalculateMeter(100, true, 300, reset.ToOffset(TimeSpan.FromHours(-6)), now).Percent == 50,
+        "Time zones must not change the remaining fraction.");
+}
+
+static void ShadesResetCountdowns()
+{
+    foreach (ThemeDefinition theme in ThemeCatalog.Themes)
+    {
+        StatusColors status = ThemeCatalog.StatusFor(theme);
+        Assert(UsageMath.ResetCountdownColor(100, status) == status.Critical, "Full wait is red.");
+        Assert(UsageMath.ResetCountdownColor(50, status) == RgbColor.Parse("#F5D547"), "Half a wait is yellow.");
+        Assert(UsageMath.ResetCountdownColor(25, status) == status.Ok, "The last quarter is green.");
+        Assert(UsageMath.ResetCountdownColor(-1, status) == UsageMath.ResetCountdownColor(0, status), "Clamp expired waits.");
+        Assert(UsageMath.ResetCountdownColor(101, status) == status.Critical, "Clamp long waits.");
+        RgbColor background = RgbColor.Parse(theme.Surface).Mix(status.Critical, theme.IsLight ? 0.06 : 0.10);
+        RgbColor previous = UsageMath.ResetCountdownColor(0, status);
+        for (int percent = 1; percent <= 100; percent++)
+        {
+            RgbColor color = UsageMath.ResetCountdownColor(percent, status);
+            Assert(Math.Abs(color.R - previous.R) <= 10 && Math.Abs(color.G - previous.G) <= 10 &&
+                Math.Abs(color.B - previous.B) <= 10, "No abrupt color jumps at either threshold.");
+            Assert(RgbColor.Contrast(color.EnsureContrast(background, 3), background) >= 3,
+                "Keep countdown graphics readable on the exhausted card in every theme.");
+            Assert(RgbColor.Contrast(color.EnsureContrast(background, 4.5), background) >= 4.5,
+                "Keep countdown labels readable in every theme.");
+            previous = color;
+        }
+    }
 }
 
 static void FormatsCountdownDurations()

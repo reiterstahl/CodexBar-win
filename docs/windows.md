@@ -40,6 +40,17 @@ Reset timing is presented as a minute-level live countdown with a short reset da
 localized weekday/date in each quota's tooltip. Countdown labels update every minute without launching provider processes; provider
 usage still refreshes every five minutes.
 
+When a quota is exhausted and its reset time and window length are known, its meter
+switches from quota usage to the percentage of the full window still left to wait.
+For a five-hour session, 2.5 hours left means 50%; the same calculation applies to
+weekly windows or any other supplied window length. The meter empties continuously
+and shades from red at 100%, through yellow at 50%, to green at 25% and lighter green
+near zero. A localized **wait left** caption and tooltip distinguish time from quota.
+This works with either usage display preference, every chart type and every view;
+the existing minute timer refreshes it without another provider call. Unknown reset
+metadata keeps the usual meter. The card remains exhausted until the provider reports
+available quota, even if the countdown reaches zero. Extra-usage balances are unchanged.
+
 ## Security boundary
 
 The engine reads provider-owned credential files:

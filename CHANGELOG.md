@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.0
+
+- Las cuotas agotadas muestran una barra de espera que se vacía hasta la renovación:
+  roja al 100 %, amarilla al 50 % y verde desde el 25 %, con tonos intermedios.
+- El porcentaje indica el tiempo restante respecto al período completo de la cuota,
+  tanto en Sesión como en Semanal. Se actualiza cada minuto, en todas las vistas y gráficos.
+- La etiqueta y el tooltip distinguen tiempo de espera de cuota disponible. La tarjeta
+  sigue resaltada en rojo hasta que el proveedor confirme que la cuota volvió.
+- Sin fecha o duración de renovación conocida se conserva el indicador de uso habitual.
+
 ## 1.4.0
 
 - La elección entre cuenta regresiva y fecha exacta se conserva por cuenta y cuota, incluso

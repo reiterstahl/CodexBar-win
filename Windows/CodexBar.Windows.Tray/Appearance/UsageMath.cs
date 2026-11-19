@@ -17,11 +17,50 @@ public readonly record struct PaceEstimate(
     double ElapsedFraction,
     double MinutesToEmpty);
 
+/// <summary>A meter represents either quota usage or, only while exhausted, time until reset.</summary>
+public readonly record struct QuotaMeterState(double Percent, bool IsResetCountdown);
+
 /// <summary>Framework-independent usage math shared by the tray UI and its tests.</summary>
 public static class UsageMath
 {
     public const int SessionWindowMinutes = 300;
     public const int WeeklyWindowMinutes = 10_080;
+
+    /// <summary>
+    /// An exhausted quota counts down against its full window, not against when exhaustion was
+    /// first observed. Missing reset metadata keeps the normal usage meter instead of guessing.
+    /// </summary>
+    public static QuotaMeterState CalculateMeter(
+        double usedPercent,
+        bool showUsed,
+        int? windowMinutes,
+        DateTimeOffset? resetsAt,
+        DateTimeOffset now)
+    {
+        double used = Math.Clamp(usedPercent, 0, 100);
+        if (used >= 100 && windowMinutes is > 0 && resetsAt is DateTimeOffset reset)
+        {
+            double fraction = Math.Clamp((reset - now).TotalMinutes / windowMinutes.Value, 0, 1);
+            return new QuotaMeterState(fraction * 100, true);
+        }
+
+        return new QuotaMeterState(showUsed ? used : 100 - used, false);
+    }
+
+    /// <summary>Continuous red → yellow (50%) → green (25%) → lighter green (0%).</summary>
+    public static RgbColor ResetCountdownColor(double percent, StatusColors status)
+    {
+        double remaining = Math.Clamp(percent, 0, 100);
+        RgbColor yellow = RgbColor.Parse("#F5D547");
+        if (remaining >= 50)
+        {
+            return yellow.Mix(status.Critical, (remaining - 50) / 50);
+        }
+
+        return remaining >= 25
+            ? status.Ok.Mix(yellow, (remaining - 25) / 25)
+            : status.Ok.Mix(RgbColor.White, (1 - (remaining / 25)) * 0.18);
+    }
 
     /// <summary>Compact local reset date, e.g. "FRI-20NOV, 12:00PM".</summary>
     public static string FormatExactReset(DateTimeOffset reset, CultureInfo culture, TimeZoneInfo? timeZone = null)
